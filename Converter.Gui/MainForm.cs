@@ -495,6 +495,14 @@ public partial class MainForm : Form
         string? beforePath = null;
         string? afterPath = null;
 
+        var profile = GetSelectedProfile();
+        if (profile is null)
+        {
+            SetPreviewStatus("Sélectionnez un profil de conversion.");
+            return;
+        }
+
+
         try
         {
 
@@ -894,6 +902,7 @@ public partial class MainForm : Form
     }
 
 
+    private static async Task WaitForFileAvailableAsync(string path, CancellationToken token)
     {
         for (int i = 0; i < 10; i++)
         {
@@ -903,11 +912,11 @@ public partial class MainForm : Form
                 using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
                 return;
             }
-            catch (IOException)
+            catch (FileNotFoundException)
             {
                 await Task.Delay(500, token).ConfigureAwait(false);
             }
-            catch (FileNotFoundException)
+            catch (IOException)
             {
                 await Task.Delay(500, token).ConfigureAwait(false);
             }
@@ -948,3 +957,5 @@ public partial class MainForm : Form
         public string Directory => System.IO.Path.GetDirectoryName(Path) ?? string.Empty;
     }
 }
+
+
