@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Converter.Core;
@@ -15,7 +16,10 @@ public static class GhostscriptRunner
         string device = "tiffg4",   // "tiffg4" (NB, CCITT G4), "tiff24nc" (couleur 24b)
         int dpi = 300,
         string? compression = null,
-        IEnumerable<string>? extraParameters = null)
+        IEnumerable<string>? extraParameters = null,
+        int? firstPage = null,
+        int? lastPage = null,
+        CancellationToken cancellationToken = default)
     {
         if (!File.Exists(inputPdf)) throw new FileNotFoundException(inputPdf);
 
@@ -29,6 +33,16 @@ public static class GhostscriptRunner
             $"-sDEVICE={device}",
             $"-r{dpi}"
         };
+
+        if (firstPage is not null)
+        {
+            args.Add($"-dFirstPage={firstPage}");
+        }
+
+        if (lastPage is not null)
+        {
+            args.Add($"-dLastPage={lastPage}");
+        }
 
         if (!string.IsNullOrWhiteSpace(compression))
         {
@@ -59,14 +73,70 @@ public static class GhostscriptRunner
             CreateNoWindow = true
         };
 
-        using var p = Process.Start(psi)!;
-        string stdout = await p.StandardOutput.ReadToEndAsync();
-        string stderr = await p.StandardError.ReadToEndAsync();
-        await p.WaitForExitAsync();
+        using var p = new Process { StartInfo = psi };
+        if (!p.Start())
+        {
+            throw new InvalidOperationException("Impossible de démarrer Ghostscript.");
+        }
+
+        var stdoutTask = p.StandardOutput.ReadToEndAsync();
+        var stderrTask = p.StandardError.ReadToEndAsync();
+
+        using var registration = cancellationToken.Register(() =>
+        {
+            try
+            {
+                if (!p.HasExited)
+                {
+                    p.Kill(entireProcessTree: true);
+                }
+            }
+            catch
+            {
+                // Ignoré : le processus peut déjà être terminé.
+            }
+        });
+
+        try
+        {
+            await p.WaitForExitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        string stdout = await stdoutTask;
+        string stderr = await stderrTask;
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (p.ExitCode != 0)
+        {
             throw new Exception($"Ghostscript a échoué (code {p.ExitCode}).\n{stderr}\n{stdout}");
+        }
     }
+
+    public static Task RenderPdfAsync(
+        string inputPdf,
+        string outputPattern,
+        string device,
+        int dpi,
+        string? compression = null,
+        IEnumerable<string>? extraParameters = null,
+        int? firstPage = null,
+        int? lastPage = null,
+        CancellationToken cancellationToken = default)
+        => ConvertPdfToTiffAsync(
+            inputPdf,
+            outputPattern,
+            device,
+            dpi,
+            compression,
+            extraParameters,
+            firstPage,
+            lastPage,
+            cancellationToken);
 
     static string ResolveGhostscriptExe()
     {
@@ -74,7 +144,26 @@ public static class GhostscriptRunner
         var fromEnv = Environment.GetEnvironmentVariable("GHOSTSCRIPT_EXE");
         if (!string.IsNullOrWhiteSpace(fromEnv)) return fromEnv;
 
-        // 2) Nom “classique” selon l’OS (nécessite que PATH soit OK)
+        // 2) Dossier local "Ghostscript" à côté de l'exécutable
+        string baseDirectory = AppContext.BaseDirectory;
+        string localFolder = Path.Combine(baseDirectory, "Ghostscript");
+        if (Directory.Exists(localFolder))
+        {
+            var candidates = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? new[] { "gswin64c.exe", "gswin32c.exe", "gswin64c.cmd", "gswin32c.cmd" }
+                : new[] { "gs", "gsx" };
+
+            foreach (var candidate in candidates)
+            {
+                var path = Path.Combine(localFolder, candidate);
+                if (File.Exists(path))
+                {
+                    return path;
+                }
+            }
+        }
+
+        // 3) Nom “classique” selon l’OS (nécessite que PATH soit OK)
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return "gswin64c"; // ou gswin32c selon install
         return "gs"; // macOS / Linux
     }

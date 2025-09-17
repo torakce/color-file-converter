@@ -27,261 +27,770 @@ partial class MainForm
     {
         components = new System.ComponentModel.Container();
         openPdfDialog = new System.Windows.Forms.OpenFileDialog();
-        saveTiffDialog = new System.Windows.Forms.SaveFileDialog();
-        tableLayout = new System.Windows.Forms.TableLayoutPanel();
-        inputLabel = new System.Windows.Forms.Label();
-        inputTextBox = new System.Windows.Forms.TextBox();
-        browseInputButton = new System.Windows.Forms.Button();
-        outputLabel = new System.Windows.Forms.Label();
-        outputTextBox = new System.Windows.Forms.TextBox();
-        browseOutputButton = new System.Windows.Forms.Button();
-        colorLabel = new System.Windows.Forms.Label();
-        colorCombo = new System.Windows.Forms.ComboBox();
-        compressionLabel = new System.Windows.Forms.Label();
-        compressionCombo = new System.Windows.Forms.ComboBox();
-        dpiLabel = new System.Windows.Forms.Label();
-        dpiUpDown = new System.Windows.Forms.NumericUpDown();
-        statusLabel = new System.Windows.Forms.Label();
-        buttonsPanel = new System.Windows.Forms.FlowLayoutPanel();
+        outputFolderDialog = new System.Windows.Forms.FolderBrowserDialog();
+        mainLayout = new System.Windows.Forms.TableLayoutPanel();
+        leftLayout = new System.Windows.Forms.TableLayoutPanel();
+        filesGroup = new System.Windows.Forms.GroupBox();
+        filesGroupLayout = new System.Windows.Forms.TableLayoutPanel();
+        filesButtonsPanel = new System.Windows.Forms.FlowLayoutPanel();
+        addFilesButton = new System.Windows.Forms.Button();
+        removeFilesButton = new System.Windows.Forms.Button();
+        clearFilesButton = new System.Windows.Forms.Button();
+        dropFilesLabel = new System.Windows.Forms.Label();
+        filesListView = new System.Windows.Forms.ListView();
+        fileColumnHeader = new System.Windows.Forms.ColumnHeader();
+        directoryColumnHeader = new System.Windows.Forms.ColumnHeader();
+        statusColumnHeader = new System.Windows.Forms.ColumnHeader();
+        profileGroup = new System.Windows.Forms.GroupBox();
+        profileLayout = new System.Windows.Forms.TableLayoutPanel();
+        profileHeaderPanel = new System.Windows.Forms.FlowLayoutPanel();
+        profileComboBox = new System.Windows.Forms.ComboBox();
+        manageProfilesButton = new System.Windows.Forms.Button();
+        refreshPreviewButton = new System.Windows.Forms.Button();
+        profileDetailsLabel = new System.Windows.Forms.Label();
+        outputGroup = new System.Windows.Forms.GroupBox();
+        outputLayout = new System.Windows.Forms.TableLayoutPanel();
+        outputFolderTextBox = new System.Windows.Forms.TextBox();
+        browseOutputFolderButton = new System.Windows.Forms.Button();
+        openExplorerCheckBox = new System.Windows.Forms.CheckBox();
+        openLogCheckBox = new System.Windows.Forms.CheckBox();
+        automationGroup = new System.Windows.Forms.GroupBox();
+        automationLayout = new System.Windows.Forms.TableLayoutPanel();
+        watchFolderCheckBox = new System.Windows.Forms.CheckBox();
+        watchFolderTextBox = new System.Windows.Forms.TextBox();
+        browseWatchFolderButton = new System.Windows.Forms.Button();
+        watchFolderStatusLabel = new System.Windows.Forms.Label();
+        previewGroup = new System.Windows.Forms.GroupBox();
+        previewLayout = new System.Windows.Forms.TableLayoutPanel();
+        previewStatusLabel = new System.Windows.Forms.Label();
+        previewImagesLayout = new System.Windows.Forms.TableLayoutPanel();
+        beforePreviewContainer = new System.Windows.Forms.Panel();
+        beforePreviewPanel = new System.Windows.Forms.Panel();
+        beforePictureBox = new System.Windows.Forms.PictureBox();
+        beforePreviewLabel = new System.Windows.Forms.Label();
+        afterPreviewContainer = new System.Windows.Forms.Panel();
+        afterPreviewPanel = new System.Windows.Forms.Panel();
+        afterPictureBox = new System.Windows.Forms.PictureBox();
+        afterPreviewLabel = new System.Windows.Forms.Label();
+        previewControlsPanel = new System.Windows.Forms.FlowLayoutPanel();
+        previewZoomTrackBar = new System.Windows.Forms.TrackBar();
+        previewZoomValueLabel = new System.Windows.Forms.Label();
+        conversionProgressBar = new System.Windows.Forms.ProgressBar();
+        actionsPanel = new System.Windows.Forms.FlowLayoutPanel();
         convertButton = new System.Windows.Forms.Button();
-        ((System.ComponentModel.ISupportInitialize)dpiUpDown).BeginInit();
-        buttonsPanel.SuspendLayout();
+        stopButton = new System.Windows.Forms.Button();
+        statusStrip = new System.Windows.Forms.StatusStrip();
+        statusStripLabel = new System.Windows.Forms.ToolStripStatusLabel();
+        mainLayout.SuspendLayout();
+        leftLayout.SuspendLayout();
+        filesGroup.SuspendLayout();
+        filesGroupLayout.SuspendLayout();
+        filesButtonsPanel.SuspendLayout();
+        profileGroup.SuspendLayout();
+        profileLayout.SuspendLayout();
+        profileHeaderPanel.SuspendLayout();
+        outputGroup.SuspendLayout();
+        outputLayout.SuspendLayout();
+        automationGroup.SuspendLayout();
+        automationLayout.SuspendLayout();
+        previewGroup.SuspendLayout();
+        previewLayout.SuspendLayout();
+        previewImagesLayout.SuspendLayout();
+        beforePreviewContainer.SuspendLayout();
+        beforePreviewPanel.SuspendLayout();
+        ((System.ComponentModel.ISupportInitialize)beforePictureBox).BeginInit();
+        afterPreviewContainer.SuspendLayout();
+        afterPreviewPanel.SuspendLayout();
+        ((System.ComponentModel.ISupportInitialize)afterPictureBox).BeginInit();
+        previewControlsPanel.SuspendLayout();
+        ((System.ComponentModel.ISupportInitialize)previewZoomTrackBar).BeginInit();
+        actionsPanel.SuspendLayout();
+        statusStrip.SuspendLayout();
         SuspendLayout();
         // 
-        // openPdfDialog
+        // mainLayout
         // 
-        openPdfDialog.DefaultExt = "pdf";
-        openPdfDialog.Filter = "PDF (*.pdf)|*.pdf|Tous les fichiers (*.*)|*.*";
-        openPdfDialog.Title = "Sélectionner un fichier PDF";
+        mainLayout.ColumnCount = 2;
+        mainLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 60F));
+        mainLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 40F));
+        mainLayout.Controls.Add(leftLayout, 0, 0);
+        mainLayout.Controls.Add(previewGroup, 1, 0);
+        mainLayout.Controls.Add(conversionProgressBar, 0, 1);
+        mainLayout.Controls.Add(actionsPanel, 1, 1);
+        mainLayout.Dock = System.Windows.Forms.DockStyle.Fill;
+        mainLayout.Location = new System.Drawing.Point(9, 9);
+        mainLayout.Name = "mainLayout";
+        mainLayout.RowCount = 2;
+        mainLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        mainLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        mainLayout.Size = new System.Drawing.Size(1266, 742);
+        mainLayout.TabIndex = 0;
         // 
-        // saveTiffDialog
+        // leftLayout
         // 
-        saveTiffDialog.AddExtension = true;
-        saveTiffDialog.DefaultExt = "tif";
-        saveTiffDialog.Filter = "TIFF (*.tif)|*.tif|TIFF (*.tiff)|*.tiff|Tous les fichiers (*.*)|*.*";
-        saveTiffDialog.Title = "Enregistrer le fichier TIFF";
+        leftLayout.ColumnCount = 1;
+        leftLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        leftLayout.Controls.Add(filesGroup, 0, 0);
+        leftLayout.Controls.Add(profileGroup, 0, 1);
+        leftLayout.Controls.Add(outputGroup, 0, 2);
+        leftLayout.Controls.Add(automationGroup, 0, 3);
+        leftLayout.Dock = System.Windows.Forms.DockStyle.Fill;
+        leftLayout.Location = new System.Drawing.Point(3, 3);
+        leftLayout.Name = "leftLayout";
+        leftLayout.RowCount = 4;
+        leftLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
+        leftLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        leftLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        leftLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        leftLayout.Size = new System.Drawing.Size(753, 685);
+        leftLayout.TabIndex = 0;
         // 
-        // tableLayout
+        // filesGroup
         // 
-        tableLayout.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-        tableLayout.AutoSize = true;
-        tableLayout.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-        tableLayout.ColumnCount = 3;
-        tableLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
-        tableLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-        tableLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
-        tableLayout.Controls.Add(inputLabel, 0, 0);
-        tableLayout.Controls.Add(inputTextBox, 1, 0);
-        tableLayout.Controls.Add(browseInputButton, 2, 0);
-        tableLayout.Controls.Add(outputLabel, 0, 1);
-        tableLayout.Controls.Add(outputTextBox, 1, 1);
-        tableLayout.Controls.Add(browseOutputButton, 2, 1);
-        tableLayout.Controls.Add(colorLabel, 0, 2);
-        tableLayout.Controls.Add(colorCombo, 1, 2);
-        tableLayout.Controls.Add(compressionLabel, 0, 3);
-        tableLayout.Controls.Add(compressionCombo, 1, 3);
-        tableLayout.Controls.Add(dpiLabel, 0, 4);
-        tableLayout.Controls.Add(dpiUpDown, 1, 4);
-        tableLayout.Controls.Add(statusLabel, 0, 5);
-        tableLayout.Controls.Add(buttonsPanel, 0, 6);
-        tableLayout.Location = new System.Drawing.Point(12, 12);
-        tableLayout.Margin = new System.Windows.Forms.Padding(3, 3, 3, 12);
-        tableLayout.Name = "tableLayout";
-        tableLayout.RowCount = 7;
-        tableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
-        tableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
-        tableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
-        tableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
-        tableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
-        tableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
-        tableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
-        tableLayout.Size = new System.Drawing.Size(660, 213);
-        tableLayout.TabIndex = 0;
+        filesGroup.Controls.Add(filesGroupLayout);
+        filesGroup.Dock = System.Windows.Forms.DockStyle.Fill;
+        filesGroup.Location = new System.Drawing.Point(3, 3);
+        filesGroup.Name = "filesGroup";
+        filesGroup.Padding = new System.Windows.Forms.Padding(12);
+        filesGroup.Size = new System.Drawing.Size(747, 336);
+        filesGroup.TabIndex = 0;
+        filesGroup.TabStop = false;
+        filesGroup.Text = "Fichiers PDF";
         // 
-        // inputLabel
+        // filesGroupLayout
         // 
-        inputLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
-        inputLabel.AutoSize = true;
-        inputLabel.Location = new System.Drawing.Point(3, 6);
-        inputLabel.Name = "inputLabel";
-        inputLabel.Size = new System.Drawing.Size(88, 15);
-        inputLabel.TabIndex = 0;
-        inputLabel.Text = "PDF à convertir";
+        filesGroupLayout.ColumnCount = 1;
+        filesGroupLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        filesGroupLayout.Controls.Add(filesButtonsPanel, 0, 0);
+        filesGroupLayout.Controls.Add(dropFilesLabel, 0, 1);
+        filesGroupLayout.Controls.Add(filesListView, 0, 2);
+        filesGroupLayout.Dock = System.Windows.Forms.DockStyle.Fill;
+        filesGroupLayout.Location = new System.Drawing.Point(12, 28);
+        filesGroupLayout.Name = "filesGroupLayout";
+        filesGroupLayout.RowCount = 3;
+        filesGroupLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        filesGroupLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        filesGroupLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        filesGroupLayout.Size = new System.Drawing.Size(723, 296);
+        filesGroupLayout.TabIndex = 0;
         // 
-        // inputTextBox
+        // filesButtonsPanel
         // 
-        inputTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
-        inputTextBox.Location = new System.Drawing.Point(114, 3);
-        inputTextBox.Margin = new System.Windows.Forms.Padding(3, 3, 6, 3);
-        inputTextBox.Name = "inputTextBox";
-        inputTextBox.PlaceholderText = "Choisissez un fichier PDF...";
-        inputTextBox.Size = new System.Drawing.Size(451, 23);
-        inputTextBox.TabIndex = 1;
+        filesButtonsPanel.AutoSize = true;
+        filesButtonsPanel.Controls.Add(addFilesButton);
+        filesButtonsPanel.Controls.Add(removeFilesButton);
+        filesButtonsPanel.Controls.Add(clearFilesButton);
+        filesButtonsPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+        filesButtonsPanel.Location = new System.Drawing.Point(3, 3);
+        filesButtonsPanel.Name = "filesButtonsPanel";
+        filesButtonsPanel.Size = new System.Drawing.Size(717, 35);
+        filesButtonsPanel.TabIndex = 0;
         // 
-        // browseInputButton
+        // addFilesButton
         // 
-        browseInputButton.AutoSize = true;
-        browseInputButton.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-        browseInputButton.Location = new System.Drawing.Point(574, 3);
-        browseInputButton.Name = "browseInputButton";
-        browseInputButton.Size = new System.Drawing.Size(83, 25);
-        browseInputButton.TabIndex = 2;
-        browseInputButton.Text = "Parcourir...";
-        browseInputButton.UseVisualStyleBackColor = true;
-        browseInputButton.Click += BrowseInputButton_Click;
+        addFilesButton.AutoSize = true;
+        addFilesButton.Location = new System.Drawing.Point(3, 3);
+        addFilesButton.Name = "addFilesButton";
+        addFilesButton.Padding = new System.Windows.Forms.Padding(10, 4, 10, 4);
+        addFilesButton.Size = new System.Drawing.Size(101, 33);
+        addFilesButton.TabIndex = 0;
+        addFilesButton.Text = "Ajouter des PDF";
+        addFilesButton.UseVisualStyleBackColor = true;
+        addFilesButton.Click += AddFilesButton_Click;
         // 
-        // outputLabel
+        // removeFilesButton
         // 
-        outputLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
-        outputLabel.AutoSize = true;
-        outputLabel.Location = new System.Drawing.Point(3, 40);
-        outputLabel.Name = "outputLabel";
-        outputLabel.Size = new System.Drawing.Size(80, 15);
-        outputLabel.TabIndex = 3;
-        outputLabel.Text = "TIFF de sortie";
+        removeFilesButton.AutoSize = true;
+        removeFilesButton.Location = new System.Drawing.Point(110, 3);
+        removeFilesButton.Name = "removeFilesButton";
+        removeFilesButton.Padding = new System.Windows.Forms.Padding(10, 4, 10, 4);
+        removeFilesButton.Size = new System.Drawing.Size(118, 33);
+        removeFilesButton.TabIndex = 1;
+        removeFilesButton.Text = "Retirer sélection";
+        removeFilesButton.UseVisualStyleBackColor = true;
+        removeFilesButton.Click += RemoveFilesButton_Click;
         // 
-        // outputTextBox
+        // clearFilesButton
         // 
-        outputTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
-        outputTextBox.Location = new System.Drawing.Point(114, 37);
-        outputTextBox.Margin = new System.Windows.Forms.Padding(3, 3, 6, 3);
-        outputTextBox.Name = "outputTextBox";
-        outputTextBox.PlaceholderText = "Nom du fichier TIFF";
-        outputTextBox.Size = new System.Drawing.Size(451, 23);
-        outputTextBox.TabIndex = 4;
+        clearFilesButton.AutoSize = true;
+        clearFilesButton.Location = new System.Drawing.Point(234, 3);
+        clearFilesButton.Name = "clearFilesButton";
+        clearFilesButton.Padding = new System.Windows.Forms.Padding(10, 4, 10, 4);
+        clearFilesButton.Size = new System.Drawing.Size(132, 33);
+        clearFilesButton.TabIndex = 2;
+        clearFilesButton.Text = "Tout supprimer";
+        clearFilesButton.UseVisualStyleBackColor = true;
+        clearFilesButton.Click += ClearFilesButton_Click;
         // 
-        // browseOutputButton
+        // dropFilesLabel
         // 
-        browseOutputButton.AutoSize = true;
-        browseOutputButton.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-        browseOutputButton.Location = new System.Drawing.Point(574, 37);
-        browseOutputButton.Name = "browseOutputButton";
-        browseOutputButton.Size = new System.Drawing.Size(83, 25);
-        browseOutputButton.TabIndex = 5;
-        browseOutputButton.Text = "Parcourir...";
-        browseOutputButton.UseVisualStyleBackColor = true;
-        browseOutputButton.Click += BrowseOutputButton_Click;
+        dropFilesLabel.AutoSize = true;
+        dropFilesLabel.Dock = System.Windows.Forms.DockStyle.Fill;
+        dropFilesLabel.ForeColor = System.Drawing.SystemColors.GrayText;
+        dropFilesLabel.Location = new System.Drawing.Point(3, 41);
+        dropFilesLabel.Margin = new System.Windows.Forms.Padding(3, 0, 3, 8);
+        dropFilesLabel.Name = "dropFilesLabel";
+        dropFilesLabel.Size = new System.Drawing.Size(717, 30);
+        dropFilesLabel.TabIndex = 1;
+        dropFilesLabel.Text = "Glissez-déposez vos PDF ici ou utilisez le bouton Ajouter.";
         // 
-        // colorLabel
+        // filesListView
         // 
-        colorLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
-        colorLabel.AutoSize = true;
-        colorLabel.Location = new System.Drawing.Point(3, 74);
-        colorLabel.Name = "colorLabel";
-        colorLabel.Size = new System.Drawing.Size(81, 15);
-        colorLabel.TabIndex = 6;
-        colorLabel.Text = "Mode couleur";
+        filesListView.AllowDrop = true;
+        filesListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] { fileColumnHeader, directoryColumnHeader, statusColumnHeader });
+        filesListView.Dock = System.Windows.Forms.DockStyle.Fill;
+        filesListView.FullRowSelect = true;
+        filesListView.GridLines = true;
+        filesListView.HideSelection = false;
+        filesListView.Location = new System.Drawing.Point(3, 82);
+        filesListView.MultiSelect = true;
+        filesListView.Name = "filesListView";
+        filesListView.Size = new System.Drawing.Size(717, 211);
+        filesListView.TabIndex = 2;
+        filesListView.UseCompatibleStateImageBehavior = false;
+        filesListView.View = System.Windows.Forms.View.Details;
+        filesListView.SelectedIndexChanged += FilesListView_SelectedIndexChanged;
+        filesListView.DragDrop += FilesListView_DragDrop;
+        filesListView.DragEnter += FilesListView_DragEnter;
         // 
-        // colorCombo
+        // fileColumnHeader
         // 
-        colorCombo.Dock = System.Windows.Forms.DockStyle.Fill;
-        colorCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-        colorCombo.FormattingEnabled = true;
-        colorCombo.Location = new System.Drawing.Point(114, 71);
-        colorCombo.Margin = new System.Windows.Forms.Padding(3, 3, 6, 3);
-        colorCombo.Name = "colorCombo";
-        colorCombo.Size = new System.Drawing.Size(451, 23);
-        colorCombo.TabIndex = 7;
-        colorCombo.SelectedIndexChanged += ColorCombo_SelectedIndexChanged;
+        fileColumnHeader.Text = "Fichier";
+        fileColumnHeader.Width = 220;
         // 
-        // compressionLabel
+        // directoryColumnHeader
         // 
-        compressionLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
-        compressionLabel.AutoSize = true;
-        compressionLabel.Location = new System.Drawing.Point(3, 108);
-        compressionLabel.Name = "compressionLabel";
-        compressionLabel.Size = new System.Drawing.Size(77, 15);
-        compressionLabel.TabIndex = 8;
-        compressionLabel.Text = "Compression";
+        directoryColumnHeader.Text = "Dossier";
+        directoryColumnHeader.Width = 320;
         // 
-        // compressionCombo
+        // statusColumnHeader
         // 
-        compressionCombo.Dock = System.Windows.Forms.DockStyle.Fill;
-        compressionCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-        compressionCombo.FormattingEnabled = true;
-        compressionCombo.Location = new System.Drawing.Point(114, 105);
-        compressionCombo.Margin = new System.Windows.Forms.Padding(3, 3, 6, 3);
-        compressionCombo.Name = "compressionCombo";
-        compressionCombo.Size = new System.Drawing.Size(451, 23);
-        compressionCombo.TabIndex = 9;
+        statusColumnHeader.Text = "Statut";
+        statusColumnHeader.Width = 120;
         // 
-        // dpiLabel
+        // profileGroup
         // 
-        dpiLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
-        dpiLabel.AutoSize = true;
-        dpiLabel.Location = new System.Drawing.Point(3, 142);
-        dpiLabel.Name = "dpiLabel";
-        dpiLabel.Size = new System.Drawing.Size(64, 15);
-        dpiLabel.TabIndex = 10;
-        dpiLabel.Text = "Résolution";
+        profileGroup.AutoSize = true;
+        profileGroup.Controls.Add(profileLayout);
+        profileGroup.Dock = System.Windows.Forms.DockStyle.Fill;
+        profileGroup.Location = new System.Drawing.Point(3, 345);
+        profileGroup.Name = "profileGroup";
+        profileGroup.Padding = new System.Windows.Forms.Padding(12);
+        profileGroup.Size = new System.Drawing.Size(747, 132);
+        profileGroup.TabIndex = 1;
+        profileGroup.TabStop = false;
+        profileGroup.Text = "Profil et réglages";
         // 
-        // dpiUpDown
+        // profileLayout
         // 
-        dpiUpDown.Anchor = System.Windows.Forms.AnchorStyles.Left;
-        dpiUpDown.Increment = new decimal(new int[] { 50, 0, 0, 0 });
-        dpiUpDown.Location = new System.Drawing.Point(114, 139);
-        dpiUpDown.Maximum = new decimal(new int[] { 2400, 0, 0, 0 });
-        dpiUpDown.Minimum = new decimal(new int[] { 72, 0, 0, 0 });
-        dpiUpDown.Name = "dpiUpDown";
-        dpiUpDown.Size = new System.Drawing.Size(120, 23);
-        dpiUpDown.TabIndex = 11;
-        dpiUpDown.Value = new decimal(new int[] { 300, 0, 0, 0 });
+        profileLayout.ColumnCount = 1;
+        profileLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        profileLayout.Controls.Add(profileHeaderPanel, 0, 0);
+        profileLayout.Controls.Add(profileDetailsLabel, 0, 1);
+        profileLayout.Dock = System.Windows.Forms.DockStyle.Fill;
+        profileLayout.Location = new System.Drawing.Point(12, 28);
+        profileLayout.Name = "profileLayout";
+        profileLayout.RowCount = 2;
+        profileLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        profileLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        profileLayout.Size = new System.Drawing.Size(723, 92);
+        profileLayout.TabIndex = 0;
         // 
-        // statusLabel
+        // profileHeaderPanel
         // 
-        statusLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
-        statusLabel.AutoSize = true;
-        tableLayout.SetColumnSpan(statusLabel, 3);
-        statusLabel.ForeColor = System.Drawing.SystemColors.GrayText;
-        statusLabel.Location = new System.Drawing.Point(3, 174);
-        statusLabel.Margin = new System.Windows.Forms.Padding(3, 6, 3, 6);
-        statusLabel.Name = "statusLabel";
-        statusLabel.Size = new System.Drawing.Size(30, 15);
-        statusLabel.TabIndex = 12;
-        statusLabel.Text = "Prêt";
+        profileHeaderPanel.AutoSize = true;
+        profileHeaderPanel.Controls.Add(profileComboBox);
+        profileHeaderPanel.Controls.Add(manageProfilesButton);
+        profileHeaderPanel.Controls.Add(refreshPreviewButton);
+        profileHeaderPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+        profileHeaderPanel.Location = new System.Drawing.Point(3, 3);
+        profileHeaderPanel.Name = "profileHeaderPanel";
+        profileHeaderPanel.Size = new System.Drawing.Size(717, 38);
+        profileHeaderPanel.TabIndex = 0;
         // 
-        // buttonsPanel
+        // profileComboBox
         // 
-        buttonsPanel.AutoSize = true;
-        buttonsPanel.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-        tableLayout.SetColumnSpan(buttonsPanel, 3);
-        buttonsPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-        buttonsPanel.FlowDirection = System.Windows.Forms.FlowDirection.RightToLeft;
-        buttonsPanel.Location = new System.Drawing.Point(3, 195);
-        buttonsPanel.Name = "buttonsPanel";
-        buttonsPanel.Size = new System.Drawing.Size(654, 15);
-        buttonsPanel.TabIndex = 13;
+        profileComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+        profileComboBox.FormattingEnabled = true;
+        profileComboBox.Location = new System.Drawing.Point(3, 3);
+        profileComboBox.Name = "profileComboBox";
+        profileComboBox.Size = new System.Drawing.Size(280, 23);
+        profileComboBox.TabIndex = 0;
+        profileComboBox.SelectedIndexChanged += ProfileComboBox_SelectedIndexChanged;
+        // 
+        // manageProfilesButton
+        // 
+        manageProfilesButton.AutoSize = true;
+        manageProfilesButton.Location = new System.Drawing.Point(289, 3);
+        manageProfilesButton.Name = "manageProfilesButton";
+        manageProfilesButton.Padding = new System.Windows.Forms.Padding(8, 4, 8, 4);
+        manageProfilesButton.Size = new System.Drawing.Size(110, 33);
+        manageProfilesButton.TabIndex = 1;
+        manageProfilesButton.Text = "Gérer les profils";
+        manageProfilesButton.UseVisualStyleBackColor = true;
+        manageProfilesButton.Click += ManageProfilesButton_Click;
+        // 
+        // refreshPreviewButton
+        // 
+        refreshPreviewButton.AutoSize = true;
+        refreshPreviewButton.Location = new System.Drawing.Point(405, 3);
+        refreshPreviewButton.Name = "refreshPreviewButton";
+        refreshPreviewButton.Padding = new System.Windows.Forms.Padding(8, 4, 8, 4);
+        refreshPreviewButton.Size = new System.Drawing.Size(145, 33);
+        refreshPreviewButton.TabIndex = 2;
+        refreshPreviewButton.Text = "Actualiser la prévisualisation";
+        refreshPreviewButton.UseVisualStyleBackColor = true;
+        refreshPreviewButton.Click += RefreshPreviewButton_Click;
+        // 
+        // profileDetailsLabel
+        // 
+        profileDetailsLabel.AutoSize = true;
+        profileDetailsLabel.Dock = System.Windows.Forms.DockStyle.Fill;
+        profileDetailsLabel.ForeColor = System.Drawing.SystemColors.GrayText;
+        profileDetailsLabel.Location = new System.Drawing.Point(3, 44);
+        profileDetailsLabel.Margin = new System.Windows.Forms.Padding(3, 0, 3, 3);
+        profileDetailsLabel.Name = "profileDetailsLabel";
+        profileDetailsLabel.Size = new System.Drawing.Size(717, 45);
+        profileDetailsLabel.TabIndex = 1;
+        profileDetailsLabel.Text = "";
+        // 
+        // outputGroup
+        // 
+        outputGroup.AutoSize = true;
+        outputGroup.Controls.Add(outputLayout);
+        outputGroup.Dock = System.Windows.Forms.DockStyle.Fill;
+        outputGroup.Location = new System.Drawing.Point(3, 483);
+        outputGroup.Name = "outputGroup";
+        outputGroup.Padding = new System.Windows.Forms.Padding(12);
+        outputGroup.Size = new System.Drawing.Size(747, 120);
+        outputGroup.TabIndex = 2;
+        outputGroup.TabStop = false;
+        outputGroup.Text = "Dossier de sortie";
+        // 
+        // outputLayout
+        // 
+        outputLayout.ColumnCount = 2;
+        outputLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        outputLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
+        outputLayout.Controls.Add(outputFolderTextBox, 0, 0);
+        outputLayout.Controls.Add(browseOutputFolderButton, 1, 0);
+        outputLayout.Controls.Add(openExplorerCheckBox, 0, 1);
+        outputLayout.Controls.Add(openLogCheckBox, 0, 2);
+        outputLayout.Dock = System.Windows.Forms.DockStyle.Fill;
+        outputLayout.Location = new System.Drawing.Point(12, 28);
+        outputLayout.Name = "outputLayout";
+        outputLayout.RowCount = 3;
+        outputLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        outputLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        outputLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        outputLayout.Size = new System.Drawing.Size(723, 80);
+        outputLayout.TabIndex = 0;
+        // 
+        // outputFolderTextBox
+        // 
+        outputFolderTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
+        outputFolderTextBox.Location = new System.Drawing.Point(3, 3);
+        outputFolderTextBox.Margin = new System.Windows.Forms.Padding(3, 3, 6, 3);
+        outputFolderTextBox.Name = "outputFolderTextBox";
+        outputFolderTextBox.PlaceholderText = "Choisissez un dossier...";
+        outputFolderTextBox.Size = new System.Drawing.Size(620, 23);
+        outputFolderTextBox.TabIndex = 0;
+        // 
+        // browseOutputFolderButton
+        // 
+        browseOutputFolderButton.AutoSize = true;
+        browseOutputFolderButton.Location = new System.Drawing.Point(632, 3);
+        browseOutputFolderButton.Name = "browseOutputFolderButton";
+        browseOutputFolderButton.Padding = new System.Windows.Forms.Padding(10, 4, 10, 4);
+        browseOutputFolderButton.Size = new System.Drawing.Size(88, 33);
+        browseOutputFolderButton.TabIndex = 1;
+        browseOutputFolderButton.Text = "Parcourir";
+        browseOutputFolderButton.UseVisualStyleBackColor = true;
+        browseOutputFolderButton.Click += BrowseOutputFolderButton_Click;
+        // 
+        // openExplorerCheckBox
+        // 
+        openExplorerCheckBox.AutoSize = true;
+        openExplorerCheckBox.Location = new System.Drawing.Point(3, 42);
+        openExplorerCheckBox.Name = "openExplorerCheckBox";
+        openExplorerCheckBox.Size = new System.Drawing.Size(252, 19);
+        openExplorerCheckBox.TabIndex = 2;
+        openExplorerCheckBox.Text = "Ouvrir l'explorateur à la fin de la conversion";
+        openExplorerCheckBox.UseVisualStyleBackColor = true;
+        openExplorerCheckBox.CheckedChanged += OpenExplorerCheckBox_CheckedChanged;
+        // 
+        // openLogCheckBox
+        // 
+        openLogCheckBox.AutoSize = true;
+        openLogCheckBox.Location = new System.Drawing.Point(3, 67);
+        openLogCheckBox.Name = "openLogCheckBox";
+        openLogCheckBox.Size = new System.Drawing.Size(267, 19);
+        openLogCheckBox.TabIndex = 3;
+        openLogCheckBox.Text = "Afficher le journal détaillé après conversion";
+        openLogCheckBox.UseVisualStyleBackColor = true;
+        openLogCheckBox.CheckedChanged += OpenLogCheckBox_CheckedChanged;
+        // 
+        // automationGroup
+        // 
+        automationGroup.AutoSize = true;
+        automationGroup.Controls.Add(automationLayout);
+        automationGroup.Dock = System.Windows.Forms.DockStyle.Fill;
+        automationGroup.Location = new System.Drawing.Point(3, 609);
+        automationGroup.Name = "automationGroup";
+        automationGroup.Padding = new System.Windows.Forms.Padding(12);
+        automationGroup.Size = new System.Drawing.Size(747, 73);
+        automationGroup.TabIndex = 3;
+        automationGroup.TabStop = false;
+        automationGroup.Text = "Automatisation";
+        // 
+        // automationLayout
+        // 
+        automationLayout.AutoSize = true;
+        automationLayout.ColumnCount = 3;
+        automationLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
+        automationLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        automationLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
+        automationLayout.Controls.Add(watchFolderCheckBox, 0, 0);
+        automationLayout.Controls.Add(watchFolderTextBox, 1, 0);
+        automationLayout.Controls.Add(browseWatchFolderButton, 2, 0);
+        automationLayout.Controls.Add(watchFolderStatusLabel, 0, 1);
+        automationLayout.Dock = System.Windows.Forms.DockStyle.Fill;
+        automationLayout.Location = new System.Drawing.Point(12, 28);
+        automationLayout.Name = "automationLayout";
+        automationLayout.RowCount = 2;
+        automationLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        automationLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        automationLayout.Size = new System.Drawing.Size(723, 33);
+        automationLayout.TabIndex = 0;
+        // 
+        // watchFolderCheckBox
+        // 
+        watchFolderCheckBox.AutoSize = true;
+        watchFolderCheckBox.Location = new System.Drawing.Point(3, 3);
+        watchFolderCheckBox.Margin = new System.Windows.Forms.Padding(3, 3, 6, 3);
+        watchFolderCheckBox.Name = "watchFolderCheckBox";
+        watchFolderCheckBox.Size = new System.Drawing.Size(144, 19);
+        watchFolderCheckBox.TabIndex = 0;
+        watchFolderCheckBox.Text = "Activer le dossier surveillé";
+        watchFolderCheckBox.UseVisualStyleBackColor = true;
+        watchFolderCheckBox.CheckedChanged += WatchFolderCheckBox_CheckedChanged;
+        // 
+        // watchFolderTextBox
+        // 
+        watchFolderTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
+        watchFolderTextBox.Location = new System.Drawing.Point(153, 3);
+        watchFolderTextBox.Margin = new System.Windows.Forms.Padding(0, 3, 6, 3);
+        watchFolderTextBox.Name = "watchFolderTextBox";
+        watchFolderTextBox.PlaceholderText = "Dossier à surveiller";
+        watchFolderTextBox.Size = new System.Drawing.Size(510, 23);
+        watchFolderTextBox.TabIndex = 1;
+        // 
+        // browseWatchFolderButton
+        // 
+        browseWatchFolderButton.AutoSize = true;
+        browseWatchFolderButton.Location = new System.Drawing.Point(672, 3);
+        browseWatchFolderButton.Name = "browseWatchFolderButton";
+        browseWatchFolderButton.Padding = new System.Windows.Forms.Padding(10, 4, 10, 4);
+        browseWatchFolderButton.Size = new System.Drawing.Size(48, 33);
+        browseWatchFolderButton.TabIndex = 2;
+        browseWatchFolderButton.Text = "...";
+        browseWatchFolderButton.UseVisualStyleBackColor = true;
+        browseWatchFolderButton.Click += BrowseWatchFolderButton_Click;
+        // 
+        // watchFolderStatusLabel
+        // 
+        automationLayout.SetColumnSpan(watchFolderStatusLabel, 3);
+        watchFolderStatusLabel.AutoSize = true;
+        watchFolderStatusLabel.Dock = System.Windows.Forms.DockStyle.Fill;
+        watchFolderStatusLabel.ForeColor = System.Drawing.SystemColors.GrayText;
+        watchFolderStatusLabel.Location = new System.Drawing.Point(3, 39);
+        watchFolderStatusLabel.Margin = new System.Windows.Forms.Padding(3, 6, 3, 0);
+        watchFolderStatusLabel.Name = "watchFolderStatusLabel";
+        watchFolderStatusLabel.Size = new System.Drawing.Size(717, 15);
+        watchFolderStatusLabel.TabIndex = 3;
+        watchFolderStatusLabel.Text = "Surveillance inactive";
+        // 
+        // previewGroup
+        // 
+        previewGroup.Controls.Add(previewLayout);
+        previewGroup.Dock = System.Windows.Forms.DockStyle.Fill;
+        previewGroup.Location = new System.Drawing.Point(762, 3);
+        previewGroup.Name = "previewGroup";
+        previewGroup.Padding = new System.Windows.Forms.Padding(12);
+        previewGroup.Size = new System.Drawing.Size(501, 685);
+        previewGroup.TabIndex = 1;
+        previewGroup.TabStop = false;
+        previewGroup.Text = "Prévisualisation TIFF";
+        // 
+        // previewLayout
+        // 
+        previewLayout.ColumnCount = 1;
+        previewLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        previewLayout.Controls.Add(previewStatusLabel, 0, 0);
+        previewLayout.Controls.Add(previewImagesLayout, 0, 1);
+        previewLayout.Controls.Add(previewControlsPanel, 0, 2);
+        previewLayout.Dock = System.Windows.Forms.DockStyle.Fill;
+        previewLayout.Location = new System.Drawing.Point(12, 28);
+        previewLayout.Name = "previewLayout";
+        previewLayout.RowCount = 3;
+        previewLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        previewLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        previewLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        previewLayout.Size = new System.Drawing.Size(477, 645);
+        previewLayout.TabIndex = 0;
+        // 
+        // previewStatusLabel
+        // 
+        previewStatusLabel.AutoSize = true;
+        previewStatusLabel.Dock = System.Windows.Forms.DockStyle.Fill;
+        previewStatusLabel.ForeColor = System.Drawing.SystemColors.GrayText;
+        previewStatusLabel.Location = new System.Drawing.Point(3, 0);
+        previewStatusLabel.Margin = new System.Windows.Forms.Padding(3, 0, 3, 8);
+        previewStatusLabel.Name = "previewStatusLabel";
+        previewStatusLabel.Size = new System.Drawing.Size(471, 15);
+        previewStatusLabel.TabIndex = 0;
+        previewStatusLabel.Text = "Sélectionnez un PDF pour afficher l'aperçu.";
+        // 
+        // previewImagesLayout
+        // 
+        previewImagesLayout.ColumnCount = 2;
+        previewImagesLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
+        previewImagesLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
+        previewImagesLayout.Controls.Add(beforePreviewContainer, 0, 0);
+        previewImagesLayout.Controls.Add(afterPreviewContainer, 1, 0);
+        previewImagesLayout.Dock = System.Windows.Forms.DockStyle.Fill;
+        previewImagesLayout.Location = new System.Drawing.Point(3, 26);
+        previewImagesLayout.Name = "previewImagesLayout";
+        previewImagesLayout.RowCount = 1;
+        previewImagesLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        previewImagesLayout.Size = new System.Drawing.Size(471, 557);
+        previewImagesLayout.TabIndex = 1;
+        // 
+        // beforePreviewContainer
+        // 
+        beforePreviewContainer.Controls.Add(beforePreviewPanel);
+        beforePreviewContainer.Controls.Add(beforePreviewLabel);
+        beforePreviewContainer.Dock = System.Windows.Forms.DockStyle.Fill;
+        beforePreviewContainer.Location = new System.Drawing.Point(3, 3);
+        beforePreviewContainer.Name = "beforePreviewContainer";
+        beforePreviewContainer.Size = new System.Drawing.Size(229, 551);
+        beforePreviewContainer.TabIndex = 0;
+        // 
+        // beforePreviewPanel
+        // 
+        beforePreviewPanel.AutoScroll = true;
+        beforePreviewPanel.Controls.Add(beforePictureBox);
+        beforePreviewPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+        beforePreviewPanel.Location = new System.Drawing.Point(0, 23);
+        beforePreviewPanel.Name = "beforePreviewPanel";
+        beforePreviewPanel.Size = new System.Drawing.Size(229, 528);
+        beforePreviewPanel.TabIndex = 1;
+        // 
+        // beforePictureBox
+        // 
+        beforePictureBox.Location = new System.Drawing.Point(0, 0);
+        beforePictureBox.Name = "beforePictureBox";
+        beforePictureBox.Size = new System.Drawing.Size(100, 50);
+        beforePictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+        beforePictureBox.TabIndex = 0;
+        beforePictureBox.TabStop = false;
+        // 
+        // beforePreviewLabel
+        // 
+        beforePreviewLabel.AutoSize = true;
+        beforePreviewLabel.Dock = System.Windows.Forms.DockStyle.Top;
+        beforePreviewLabel.Location = new System.Drawing.Point(0, 0);
+        beforePreviewLabel.Name = "beforePreviewLabel";
+        beforePreviewLabel.Size = new System.Drawing.Size(101, 15);
+        beforePreviewLabel.TabIndex = 0;
+        beforePreviewLabel.Text = "Avant conversion";
+        // 
+        // afterPreviewContainer
+        // 
+        afterPreviewContainer.Controls.Add(afterPreviewPanel);
+        afterPreviewContainer.Controls.Add(afterPreviewLabel);
+        afterPreviewContainer.Dock = System.Windows.Forms.DockStyle.Fill;
+        afterPreviewContainer.Location = new System.Drawing.Point(238, 3);
+        afterPreviewContainer.Name = "afterPreviewContainer";
+        afterPreviewContainer.Size = new System.Drawing.Size(230, 551);
+        afterPreviewContainer.TabIndex = 1;
+        // 
+        // afterPreviewPanel
+        // 
+        afterPreviewPanel.AutoScroll = true;
+        afterPreviewPanel.Controls.Add(afterPictureBox);
+        afterPreviewPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+        afterPreviewPanel.Location = new System.Drawing.Point(0, 23);
+        afterPreviewPanel.Name = "afterPreviewPanel";
+        afterPreviewPanel.Size = new System.Drawing.Size(230, 528);
+        afterPreviewPanel.TabIndex = 1;
+        // 
+        // afterPictureBox
+        // 
+        afterPictureBox.Location = new System.Drawing.Point(0, 0);
+        afterPictureBox.Name = "afterPictureBox";
+        afterPictureBox.Size = new System.Drawing.Size(100, 50);
+        afterPictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+        afterPictureBox.TabIndex = 0;
+        afterPictureBox.TabStop = false;
+        // 
+        // afterPreviewLabel
+        // 
+        afterPreviewLabel.AutoSize = true;
+        afterPreviewLabel.Dock = System.Windows.Forms.DockStyle.Top;
+        afterPreviewLabel.Location = new System.Drawing.Point(0, 0);
+        afterPreviewLabel.Name = "afterPreviewLabel";
+        afterPreviewLabel.Size = new System.Drawing.Size(115, 15);
+        afterPreviewLabel.TabIndex = 0;
+        afterPreviewLabel.Text = "Après conversion";
+        // 
+        // previewControlsPanel
+        // 
+        previewControlsPanel.AutoSize = true;
+        previewControlsPanel.Controls.Add(previewZoomTrackBar);
+        previewControlsPanel.Controls.Add(previewZoomValueLabel);
+        previewControlsPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+        previewControlsPanel.FlowDirection = System.Windows.Forms.FlowDirection.LeftToRight;
+        previewControlsPanel.Location = new System.Drawing.Point(3, 589);
+        previewControlsPanel.Name = "previewControlsPanel";
+        previewControlsPanel.Size = new System.Drawing.Size(471, 53);
+        previewControlsPanel.TabIndex = 2;
+        // 
+        // previewZoomTrackBar
+        // 
+        previewZoomTrackBar.LargeChange = 25;
+        previewZoomTrackBar.Location = new System.Drawing.Point(3, 3);
+        previewZoomTrackBar.Maximum = 400;
+        previewZoomTrackBar.Minimum = 10;
+        previewZoomTrackBar.Name = "previewZoomTrackBar";
+        previewZoomTrackBar.Size = new System.Drawing.Size(280, 45);
+        previewZoomTrackBar.TabIndex = 0;
+        previewZoomTrackBar.TickFrequency = 10;
+        previewZoomTrackBar.Value = 100;
+        previewZoomTrackBar.ValueChanged += PreviewZoomTrackBar_ValueChanged;
+        // 
+        // previewZoomValueLabel
+        // 
+        previewZoomValueLabel.AutoSize = true;
+        previewZoomValueLabel.Location = new System.Drawing.Point(289, 12);
+        previewZoomValueLabel.Margin = new System.Windows.Forms.Padding(3, 12, 3, 0);
+        previewZoomValueLabel.Name = "previewZoomValueLabel";
+        previewZoomValueLabel.Size = new System.Drawing.Size(66, 15);
+        previewZoomValueLabel.TabIndex = 1;
+        previewZoomValueLabel.Text = "Zoom : 100%";
+        // 
+        // conversionProgressBar
+        // 
+        conversionProgressBar.Dock = System.Windows.Forms.DockStyle.Fill;
+        conversionProgressBar.Location = new System.Drawing.Point(3, 694);
+        conversionProgressBar.Margin = new System.Windows.Forms.Padding(3, 6, 12, 0);
+        conversionProgressBar.Name = "conversionProgressBar";
+        conversionProgressBar.Size = new System.Drawing.Size(741, 45);
+        conversionProgressBar.TabIndex = 2;
+        // 
+        // actionsPanel
+        // 
+        actionsPanel.AutoSize = true;
+        actionsPanel.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+        actionsPanel.Controls.Add(convertButton);
+        actionsPanel.Controls.Add(stopButton);
+        actionsPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+        actionsPanel.FlowDirection = System.Windows.Forms.FlowDirection.RightToLeft;
+        actionsPanel.Location = new System.Drawing.Point(762, 694);
+        actionsPanel.Margin = new System.Windows.Forms.Padding(3, 6, 3, 0);
+        actionsPanel.Name = "actionsPanel";
+        actionsPanel.Size = new System.Drawing.Size(501, 45);
+        actionsPanel.TabIndex = 3;
         // 
         // convertButton
         // 
         convertButton.AutoSize = true;
-        convertButton.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-        convertButton.Location = new System.Drawing.Point(555, 3);
         convertButton.Name = "convertButton";
-        convertButton.Padding = new System.Windows.Forms.Padding(12, 4, 12, 4);
-        convertButton.Size = new System.Drawing.Size(96, 31);
+        convertButton.Padding = new System.Windows.Forms.Padding(12, 6, 12, 6);
+        convertButton.Size = new System.Drawing.Size(136, 39);
         convertButton.TabIndex = 0;
-        convertButton.Text = "Convertir";
+        convertButton.Text = "Lancer la conversion";
         convertButton.UseVisualStyleBackColor = true;
         convertButton.Click += ConvertButton_Click;
-        buttonsPanel.Controls.Add(convertButton);
+        // 
+        // stopButton
+        // 
+        stopButton.AutoSize = true;
+        stopButton.Enabled = false;
+        stopButton.Name = "stopButton";
+        stopButton.Padding = new System.Windows.Forms.Padding(12, 6, 12, 6);
+        stopButton.Size = new System.Drawing.Size(136, 39);
+        stopButton.TabIndex = 1;
+        stopButton.Text = "Arrêter";
+        stopButton.UseVisualStyleBackColor = true;
+        stopButton.Click += StopButton_Click;
+        // 
+        // statusStrip
+        // 
+        statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { statusStripLabel });
+        statusStrip.Location = new System.Drawing.Point(0, 751);
+        statusStrip.Name = "statusStrip";
+        statusStrip.Size = new System.Drawing.Size(1284, 22);
+        statusStrip.TabIndex = 1;
+        statusStrip.Text = "statusStrip";
+        // 
+        // statusStripLabel
+        // 
+        statusStripLabel.Name = "statusStripLabel";
+        statusStripLabel.Size = new System.Drawing.Size(30, 17);
+        statusStripLabel.Text = "Prêt";
         // 
         // MainForm
         // 
         AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
         AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-        ClientSize = new System.Drawing.Size(684, 241);
-        Controls.Add(tableLayout);
-        FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-        MaximizeBox = false;
-        MinimizeBox = false;
+        ClientSize = new System.Drawing.Size(1284, 782);
+        Controls.Add(mainLayout);
+        Controls.Add(statusStrip);
+        MinimumSize = new System.Drawing.Size(1100, 720);
         Name = "MainForm";
         Padding = new System.Windows.Forms.Padding(9);
         StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
         Text = "Convertisseur PDF → TIFF";
-        buttonsPanel.ResumeLayout(false);
-        buttonsPanel.PerformLayout();
-        ((System.ComponentModel.ISupportInitialize)dpiUpDown).EndInit();
+        mainLayout.ResumeLayout(false);
+        mainLayout.PerformLayout();
+        leftLayout.ResumeLayout(false);
+        leftLayout.PerformLayout();
+        filesGroup.ResumeLayout(false);
+        filesGroupLayout.ResumeLayout(false);
+        filesGroupLayout.PerformLayout();
+        filesButtonsPanel.ResumeLayout(false);
+        filesButtonsPanel.PerformLayout();
+        profileGroup.ResumeLayout(false);
+        profileLayout.ResumeLayout(false);
+        profileLayout.PerformLayout();
+        profileHeaderPanel.ResumeLayout(false);
+        profileHeaderPanel.PerformLayout();
+        outputGroup.ResumeLayout(false);
+        outputLayout.ResumeLayout(false);
+        outputLayout.PerformLayout();
+        automationGroup.ResumeLayout(false);
+        automationLayout.ResumeLayout(false);
+        automationLayout.PerformLayout();
+        previewGroup.ResumeLayout(false);
+        previewLayout.ResumeLayout(false);
+        previewLayout.PerformLayout();
+        previewImagesLayout.ResumeLayout(false);
+        beforePreviewContainer.ResumeLayout(false);
+        beforePreviewContainer.PerformLayout();
+        beforePreviewPanel.ResumeLayout(false);
+        ((System.ComponentModel.ISupportInitialize)beforePictureBox).EndInit();
+        afterPreviewContainer.ResumeLayout(false);
+        afterPreviewContainer.PerformLayout();
+        afterPreviewPanel.ResumeLayout(false);
+        ((System.ComponentModel.ISupportInitialize)afterPictureBox).EndInit();
+        previewControlsPanel.ResumeLayout(false);
+        previewControlsPanel.PerformLayout();
+        ((System.ComponentModel.ISupportInitialize)previewZoomTrackBar).EndInit();
+        actionsPanel.ResumeLayout(false);
+        actionsPanel.PerformLayout();
+        statusStrip.ResumeLayout(false);
+        statusStrip.PerformLayout();
         ResumeLayout(false);
         PerformLayout();
     }
@@ -289,21 +798,58 @@ partial class MainForm
     #endregion
 
     private System.Windows.Forms.OpenFileDialog openPdfDialog;
-    private System.Windows.Forms.SaveFileDialog saveTiffDialog;
-    private System.Windows.Forms.TableLayoutPanel tableLayout;
-    private System.Windows.Forms.Label inputLabel;
-    private System.Windows.Forms.TextBox inputTextBox;
-    private System.Windows.Forms.Button browseInputButton;
-    private System.Windows.Forms.Label outputLabel;
-    private System.Windows.Forms.TextBox outputTextBox;
-    private System.Windows.Forms.Button browseOutputButton;
-    private System.Windows.Forms.Label colorLabel;
-    private System.Windows.Forms.ComboBox colorCombo;
-    private System.Windows.Forms.Label compressionLabel;
-    private System.Windows.Forms.ComboBox compressionCombo;
-    private System.Windows.Forms.Label dpiLabel;
-    private System.Windows.Forms.NumericUpDown dpiUpDown;
-    private System.Windows.Forms.Label statusLabel;
-    private System.Windows.Forms.FlowLayoutPanel buttonsPanel;
+    private System.Windows.Forms.FolderBrowserDialog outputFolderDialog;
+    private System.Windows.Forms.TableLayoutPanel mainLayout;
+    private System.Windows.Forms.TableLayoutPanel leftLayout;
+    private System.Windows.Forms.GroupBox filesGroup;
+    private System.Windows.Forms.TableLayoutPanel filesGroupLayout;
+    private System.Windows.Forms.FlowLayoutPanel filesButtonsPanel;
+    private System.Windows.Forms.Button addFilesButton;
+    private System.Windows.Forms.Button removeFilesButton;
+    private System.Windows.Forms.Button clearFilesButton;
+    private System.Windows.Forms.Label dropFilesLabel;
+    private System.Windows.Forms.ListView filesListView;
+    private System.Windows.Forms.ColumnHeader fileColumnHeader;
+    private System.Windows.Forms.ColumnHeader directoryColumnHeader;
+    private System.Windows.Forms.ColumnHeader statusColumnHeader;
+    private System.Windows.Forms.GroupBox profileGroup;
+    private System.Windows.Forms.TableLayoutPanel profileLayout;
+    private System.Windows.Forms.FlowLayoutPanel profileHeaderPanel;
+    private System.Windows.Forms.ComboBox profileComboBox;
+    private System.Windows.Forms.Button manageProfilesButton;
+    private System.Windows.Forms.Button refreshPreviewButton;
+    private System.Windows.Forms.Label profileDetailsLabel;
+    private System.Windows.Forms.GroupBox outputGroup;
+    private System.Windows.Forms.TableLayoutPanel outputLayout;
+    private System.Windows.Forms.TextBox outputFolderTextBox;
+    private System.Windows.Forms.Button browseOutputFolderButton;
+    private System.Windows.Forms.CheckBox openExplorerCheckBox;
+    private System.Windows.Forms.CheckBox openLogCheckBox;
+    private System.Windows.Forms.GroupBox automationGroup;
+    private System.Windows.Forms.TableLayoutPanel automationLayout;
+    private System.Windows.Forms.CheckBox watchFolderCheckBox;
+    private System.Windows.Forms.TextBox watchFolderTextBox;
+    private System.Windows.Forms.Button browseWatchFolderButton;
+    private System.Windows.Forms.Label watchFolderStatusLabel;
+    private System.Windows.Forms.GroupBox previewGroup;
+    private System.Windows.Forms.TableLayoutPanel previewLayout;
+    private System.Windows.Forms.Label previewStatusLabel;
+    private System.Windows.Forms.TableLayoutPanel previewImagesLayout;
+    private System.Windows.Forms.Panel beforePreviewContainer;
+    private System.Windows.Forms.Panel beforePreviewPanel;
+    private System.Windows.Forms.PictureBox beforePictureBox;
+    private System.Windows.Forms.Label beforePreviewLabel;
+    private System.Windows.Forms.Panel afterPreviewContainer;
+    private System.Windows.Forms.Panel afterPreviewPanel;
+    private System.Windows.Forms.PictureBox afterPictureBox;
+    private System.Windows.Forms.Label afterPreviewLabel;
+    private System.Windows.Forms.FlowLayoutPanel previewControlsPanel;
+    private System.Windows.Forms.TrackBar previewZoomTrackBar;
+    private System.Windows.Forms.Label previewZoomValueLabel;
+    private System.Windows.Forms.ProgressBar conversionProgressBar;
+    private System.Windows.Forms.FlowLayoutPanel actionsPanel;
     private System.Windows.Forms.Button convertButton;
+    private System.Windows.Forms.Button stopButton;
+    private System.Windows.Forms.StatusStrip statusStrip;
+    private System.Windows.Forms.ToolStripStatusLabel statusStripLabel;
 }
