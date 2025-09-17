@@ -171,6 +171,8 @@ public partial class MainForm : Form
 
         try
         {
+            await WaitForFileAvailableAsync(inputPath);
+
             SetUiEnabled(false);
             statusLabel.Text = "Conversion en cours...";
 
@@ -222,6 +224,33 @@ public partial class MainForm : Form
         {
             outputTextBox.Text = suggestion;
         }
+    }
+
+    private static async Task WaitForFileAvailableAsync(string filePath, int maxAttempts = 5, int delayMilliseconds = 200)
+    {
+        IOException? lastError = null;
+
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            try
+            {
+                using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.None);
+                return;
+            }
+            catch (IOException ex)
+            {
+                lastError = ex;
+
+                if (attempt >= maxAttempts - 1)
+                {
+                    throw;
+                }
+            }
+
+            await Task.Delay(delayMilliseconds);
+        }
+
+        throw lastError ?? new IOException($"Impossible d'accéder au fichier '{filePath}'.");
     }
 
     private sealed record ColorModeChoice(string Display, string Device, CompressionOption[] Compressions)
