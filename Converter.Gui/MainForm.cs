@@ -497,15 +497,7 @@ public partial class MainForm : Form
 
         try
         {
-            var profile = GetSelectedProfile();
-            if (profile is null)
-            {
-                SetPreviewStatus("Aucun profil sélectionné.");
-                return;
-            }
 
-            beforePath = Path.Combine(Path.GetTempPath(), $"preview_before_{Guid.NewGuid():N}.png");
-            afterPath = Path.Combine(Path.GetTempPath(), $"preview_after_{Guid.NewGuid():N}.tif");
 
             await GhostscriptRunner.RenderPdfAsync(selected.Path, beforePath, "png16m", 150, firstPage: 1, lastPage: 1, cancellationToken: token).ConfigureAwait(true);
             await GhostscriptRunner.ConvertPdfToTiffAsync(selected.Path, afterPath, profile.Device, profile.Dpi, profile.Compression, profile.ExtraParameters, 1, 1, token).ConfigureAwait(true);
@@ -901,7 +893,7 @@ public partial class MainForm : Form
         }
     }
 
-    private static async Task WaitForFileAvailableAsync(string path, CancellationToken token)
+
     {
         for (int i = 0; i < 10; i++)
         {
