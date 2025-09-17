@@ -85,7 +85,7 @@ public partial class MainForm : Form
         UpdateOutputFolderControls();
         UpdateSelectedFileDetails();
         UpdateActions();
-        statusStripLabel.Text = "PrÃªt";
+        statusStripLabel.Text = "Pret";
     }
 
     private void RefreshProfiles()
@@ -209,7 +209,7 @@ public partial class MainForm : Form
 
         if (filesListView.SelectedItems.Count == 0 || filesListView.SelectedItems[0].Tag is not PdfFileItem item)
         {
-            selectedFileDetailsLabel.Text = "Sélectionnez un PDF pour afficher ses détails.";
+            selectedFileDetailsLabel.Text = "Selectionnez un PDF pour afficher ses details.";
             return;
         }
 
@@ -218,17 +218,17 @@ public partial class MainForm : Form
             var info = new FileInfo(item.Path);
             if (!info.Exists)
             {
-                selectedFileDetailsLabel.Text = $"{item.FileName} — introuvable";
+                selectedFileDetailsLabel.Text = $"{item.FileName} - introuvable";
                 return;
             }
 
             var size = FormatBytes(info.Length);
             var modified = info.LastWriteTime.ToString("f", CultureInfo.CurrentUICulture);
-            selectedFileDetailsLabel.Text = $"{item.FileName} — {size} — Modifié le {modified}";
+            selectedFileDetailsLabel.Text = $"{item.FileName} - {size} - Modifie le {modified}";
         }
         catch (Exception ex)
         {
-            selectedFileDetailsLabel.Text = $"{item.FileName} — informations indisponibles ({ex.Message})";
+            selectedFileDetailsLabel.Text = $"{item.FileName} - informations indisponibles ({ex.Message})";
         }
     }
 
@@ -325,7 +325,7 @@ public partial class MainForm : Form
         var profile = GetSelectedProfile();
         if (profile is null)
         {
-            MessageBox.Show(this, "SÃ©lectionnez un profil de conversion.", "Conversion", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(this, "Selectionnez un profil de conversion.", "Conversion", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
 
@@ -335,7 +335,7 @@ public partial class MainForm : Form
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, $"Impossible de crÃ©er le dossier de sortie : {ex.Message}", "Conversion", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(this, $"Impossible de creer le dossier de sortie : {ex.Message}", "Conversion", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
 
@@ -374,8 +374,8 @@ public partial class MainForm : Form
             }
             catch (OperationCanceledException)
             {
-                statusStripLabel.Text = "Conversion annulÃ©e.";
-                MessageBox.Show(this, "La conversion a Ã©tÃ© annulÃ©e.", "Conversion", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                statusStripLabel.Text = "Conversion annulee.";
+                MessageBox.Show(this, "La conversion a ete annulee.", "Conversion", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
             catch (Exception ex)
@@ -430,7 +430,7 @@ public partial class MainForm : Form
             {
                 if (progress.Result.Success)
                 {
-                    item.SubItems[2].Text = "SuccÃ¨s";
+                    item.SubItems[2].Text = "Succes";
                     item.BackColor = Color.FromArgb(209, 231, 221);
                     item.ForeColor = Color.FromArgb(21, 87, 36);
                 }
@@ -468,8 +468,8 @@ public partial class MainForm : Form
         var failures = result.Files.Where(f => !f.Success).ToList();
 
         statusStripLabel.Text = failures.Count == 0
-            ? "Conversion terminÃ©e."
-            : failures.Count == result.Files.Count ? "Conversion Ã©chouÃ©e." : "Conversion terminÃ©e avec des erreurs.";
+            ? "Conversion terminee."
+            : failures.Count == result.Files.Count ? "Conversion echouee." : "Conversion terminee avec des erreurs.";
 
         var message = successes.Count > 0
             ? $"{successes.Count} fichier(s) converti(s)."
@@ -518,7 +518,7 @@ public partial class MainForm : Form
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, $"Impossible d'Ã©crire le journal : {ex.Message}", "Journal", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(this, $"Impossible d'ecrire le journal : {ex.Message}", "Journal", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
     }
 
@@ -534,11 +534,11 @@ public partial class MainForm : Form
         writer.WriteLine($"Profil : {profile.Name} ({profile.Describe()})");
         writer.WriteLine($"Dossier de sortie : {outputFolder}");
         writer.WriteLine();
-        writer.WriteLine("Fichier;DurÃ©e;EntrÃ©e;Sortie;Statut;Message");
+        writer.WriteLine("Fichier;Duree;Entree;Sortie;Statut;Message");
 
         foreach (var file in result.Files)
         {
-            var status = file.Success ? "SuccÃ¨s" : "Erreur";
+            var status = file.Success ? "Succes" : "Erreur";
             var message = file.Success ? string.Empty : file.ErrorMessage ?? string.Empty;
             writer.WriteLine($"{Path.GetFileName(file.InputPath)};{file.Duration.TotalSeconds:F1}s;{FormatBytes(file.InputSize)};{FormatBytes(file.OutputSize)};{status};{message.Replace(';', ',')}");
         }
@@ -589,7 +589,7 @@ public partial class MainForm : Form
         await LoadPreviewAsync(force: true);
     }
 
-    private async Task LoadPreviewAsync(bool force = false)
+        private async Task LoadPreviewAsync(bool force = false)
     {
         if (_isConverting && !force)
         {
@@ -608,24 +608,22 @@ public partial class MainForm : Form
         _previewCts = new CancellationTokenSource();
         var token = _previewCts.Token;
 
-            SetPreviewStatus("Sélectionnez un profil de conversion.");
-
-            beforePath = CreatePreviewTempFile(".png");
-            afterPath = CreatePreviewTempFile(".tiff");
-        string? beforePath = null;
-        string? afterPath = null;
-
         var profile = GetSelectedProfile();
         if (profile is null)
         {
-            SetPreviewStatus("Sélectionnez un profil de conversion.");
+            SetPreviewStatus("Selectionnez un profil de conversion.");
             return;
         }
 
+        string? beforePath = null;
+        string? afterPath = null;
 
         try
         {
+            SetPreviewStatus("Previsualisation en cours...");
 
+            beforePath = CreatePreviewTempFile(".png");
+            afterPath = CreatePreviewTempFile(".tiff");
 
             await GhostscriptRunner.RenderPdfAsync(selected.Path, beforePath, "png16m", 150, firstPage: 1, lastPage: 1, cancellationToken: token).ConfigureAwait(true);
             await GhostscriptRunner.ConvertPdfToTiffAsync(selected.Path, afterPath, profile.Device, profile.Dpi, profile.Compression, profile.ExtraParameters, 1, 1, token).ConfigureAwait(true);
@@ -647,38 +645,30 @@ public partial class MainForm : Form
                 beforePictureBox.Image = beforeImage;
                 afterPictureBox.Image = afterImage;
                 ApplyPreviewZoom(previewZoomTrackBar.Value / 100.0);
-                SetPreviewStatus($"PrÃ©visualisation : {Path.GetFileName(selected.Path)}");
+                SetPreviewStatus($"Previsualisation : {Path.GetFileName(selected.Path)}");
             }));
-
         }
         catch (OperationCanceledException)
         {
-            SetPreviewStatus("PrÃ©visualisation annulÃ©e.");
+            SetPreviewStatus("Previsualisation annulee.");
         }
         catch (Exception ex)
         {
-            SetPreviewStatus($"PrÃ©visualisation impossible : {ex.Message}");
+            SetPreviewStatus($"Previsualisation impossible : {ex.Message}");
         }
         finally
         {
-            try
+            if (beforePath is not null && File.Exists(beforePath))
             {
-                if (beforePath is not null && File.Exists(beforePath)) File.Delete(beforePath);
-            }
-            catch
-            {
+                try { File.Delete(beforePath); } catch { }
             }
 
-            try
+            if (afterPath is not null && File.Exists(afterPath))
             {
-                if (afterPath is not null && File.Exists(afterPath)) File.Delete(afterPath);
-            }
-            catch
-            {
+                try { File.Delete(afterPath); } catch { }
             }
         }
     }
-
     private static Image LoadImageSafely(string path)
     {
         using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -702,7 +692,7 @@ public partial class MainForm : Form
         _afterPreview = null;
         beforePictureBox.Image = null;
         afterPictureBox.Image = null;
-        SetPreviewStatus("SÃ©lectionnez un PDF pour afficher l'aperÃ§u.");
+        SetPreviewStatus("Selectionnez un PDF pour afficher l'apercu.");
     }
 
     private void SetPreviewStatus(string message)
@@ -847,7 +837,7 @@ public partial class MainForm : Form
         var folder = outputFolderTextBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
         {
-            MessageBox.Show(this, "Sélectionnez un dossier de sortie valide.", "Dossier de sortie", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(this, "Selectionnez un dossier de sortie valide.", "Dossier de sortie", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
 
@@ -922,54 +912,51 @@ public partial class MainForm : Form
         if (string.IsNullOrWhiteSpace(folder))
         {
             UpdateWatchToggleAppearance();
-            AppendWatchLog("Activation impossible : dossier non renseigné", Color.FromArgb(220, 53, 69));
-            UpdateWatchToggleAppearance();
-            AppendWatchLog($"Activation impossible : {ex.Message}", Color.FromArgb(220, 53, 69));
-            return;
-        }
-
-        StopWatchFolder(silent: true);
-        {
-        _currentWatchFolder = folder;
-        UpdateWatchToggleAppearance();
-        AppendWatchLog($"Surveillance activée sur {folder}", Color.FromArgb(0, 120, 215));
-    private void StopWatchFolder(bool silent = false)
-        _currentWatchFolder = null;
-        UpdateWatchToggleAppearance();
-
-        if (!silent)
-        {
-            AppendWatchLog("Surveillance arrêtée", SystemColors.ControlText);
-        }
-        {
-        AppendWatchLog($"Fichier détecté : {Path.GetFileName(path)}");
-                AppendWatchLog("Conversion ignorée : profil ou dossier manquant", Color.FromArgb(255, 193, 7));
-            AppendWatchLog($"Conversion en cours : {Path.GetFileName(path)}", Color.FromArgb(0, 120, 215));
-                AppendWatchLog($"Conversion terminée : {Path.GetFileName(path)}", Color.FromArgb(40, 167, 69));
-            AppendWatchLog($"Erreur conversion automatique : {ex.Message}", Color.FromArgb(220, 53, 69));
-            MessageBox.Show(this, $"Impossible d'accÃ©der au dossier Ã  surveiller : {ex.Message}", "Automatisation", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            AppendWatchLog("Activation impossible : dossier non renseigne", Color.FromArgb(220, 53, 69));
             watchFolderCheckBox.Checked = false;
             return;
         }
 
-        StopWatchFolder();
-        _watcherCts = new CancellationTokenSource();
-
-        _watcher = new FileSystemWatcher(folder)
+        if (!Directory.Exists(folder))
         {
-            EnableRaisingEvents = true,
-            Filter = "*.pdf",
-            IncludeSubdirectories = false
-        };
+            UpdateWatchToggleAppearance();
+            AppendWatchLog("Activation impossible : dossier introuvable", Color.FromArgb(220, 53, 69));
+            MessageBox.Show(this, "Selectionnez un dossier a surveiller valide.", "Automatisation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            watchFolderCheckBox.Checked = false;
+            return;
+        }
 
-        _watcher.Created += WatcherOnChanged;
-        _watcher.Changed += WatcherOnChanged;
-        _watcher.Renamed += WatcherOnRenamed;
+        try
+        {
+            StopWatchFolder(silent: true);
 
-        watchFolderStatusLabel.Text = $"Surveillance active : {folder}";
+            _watcherCts = new CancellationTokenSource();
+            _watcher = new FileSystemWatcher(folder)
+            {
+                EnableRaisingEvents = true,
+                Filter = "*.pdf",
+                IncludeSubdirectories = false
+            };
+
+            _watcher.Created += WatcherOnChanged;
+            _watcher.Changed += WatcherOnChanged;
+            _watcher.Renamed += WatcherOnRenamed;
+
+            _currentWatchFolder = folder;
+            UpdateWatchToggleAppearance();
+            watchFolderStatusLabel.Text = $"Surveillance active : {folder}";
+            AppendWatchLog($"Surveillance active sur {folder}", Color.FromArgb(0, 120, 215));
+        }
+        catch (Exception ex)
+        {
+            StopWatchFolder(silent: true);
+            AppendWatchLog($"Activation impossible : {ex.Message}", Color.FromArgb(220, 53, 69));
+            MessageBox.Show(this, $"Impossible d'acceder au dossier a surveiller : {ex.Message}", "Automatisation", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            watchFolderCheckBox.Checked = false;
+        }
     }
 
-    private void StopWatchFolder()
+    private void StopWatchFolder(bool silent = false)
     {
         _watcherCts?.Cancel();
         _watcherCts?.Dispose();
@@ -990,7 +977,20 @@ public partial class MainForm : Form
             _watchQueue.Clear();
         }
 
+        _currentWatchFolder = null;
+        UpdateWatchToggleAppearance();
+
+        if (!silent)
+        {
+            AppendWatchLog("Surveillance arretee", SystemColors.ControlText);
+        }
+
         watchFolderStatusLabel.Text = "Surveillance inactive";
+    }
+
+    private void StopWatchFolder()
+    {
+        StopWatchFolder(silent: false);
     }
 
     private void WatcherOnChanged(object sender, FileSystemEventArgs e)
@@ -1083,7 +1083,7 @@ public partial class MainForm : Form
     }
 
 
-    private static async Task WaitForFileAvailableAsync(string path, CancellationToken token)
+    private async Task WaitForFileAvailableAsync(string path, CancellationToken token)
     {
         for (int i = 0; i < 10; i++)
         {

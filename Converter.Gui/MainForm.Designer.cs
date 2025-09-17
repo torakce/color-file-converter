@@ -211,7 +211,7 @@ partial class MainForm
         removeFilesButton.Padding = new System.Windows.Forms.Padding(10, 4, 10, 4);
         removeFilesButton.Size = new System.Drawing.Size(118, 33);
         removeFilesButton.TabIndex = 1;
-        removeFilesButton.Text = "Retirer sélection";
+        removeFilesButton.Text = "Retirer selection";
         removeFilesButton.UseVisualStyleBackColor = true;
         removeFilesButton.Click += RemoveFilesButton_Click;
         // 
@@ -237,7 +237,7 @@ partial class MainForm
         dropFilesLabel.Name = "dropFilesLabel";
         dropFilesLabel.Size = new System.Drawing.Size(717, 30);
         dropFilesLabel.TabIndex = 1;
-        dropFilesLabel.Text = "Glissez-déposez vos PDF ici ou utilisez le bouton Ajouter.";
+        dropFilesLabel.Text = "Glissez-deposez vos PDF ici ou utilisez le bouton Ajouter.";
         //
         // selectedFileDetailsLabel
         //
@@ -249,7 +249,7 @@ partial class MainForm
         selectedFileDetailsLabel.Name = "selectedFileDetailsLabel";
         selectedFileDetailsLabel.Size = new System.Drawing.Size(717, 30);
         selectedFileDetailsLabel.TabIndex = 3;
-        selectedFileDetailsLabel.Text = "Sélectionnez un PDF pour afficher ses détails.";
+        selectedFileDetailsLabel.Text = "Selectionnez un PDF pour afficher ses details.";
         // 
         // filesListView
         // 
@@ -296,7 +296,7 @@ partial class MainForm
         profileGroup.Size = new System.Drawing.Size(747, 132);
         profileGroup.TabIndex = 1;
         profileGroup.TabStop = false;
-        profileGroup.Text = "Profil et réglages";
+        profileGroup.Text = "Profil et reglages";
         // 
         // profileLayout
         // 
@@ -343,7 +343,7 @@ partial class MainForm
         manageProfilesButton.Padding = new System.Windows.Forms.Padding(8, 4, 8, 4);
         manageProfilesButton.Size = new System.Drawing.Size(110, 33);
         manageProfilesButton.TabIndex = 1;
-        manageProfilesButton.Text = "Gérer les profils";
+        manageProfilesButton.Text = "Gerer les profils";
         manageProfilesButton.UseVisualStyleBackColor = true;
         manageProfilesButton.Click += ManageProfilesButton_Click;
         // 
@@ -355,7 +355,7 @@ partial class MainForm
         refreshPreviewButton.Padding = new System.Windows.Forms.Padding(8, 4, 8, 4);
         refreshPreviewButton.Size = new System.Drawing.Size(145, 33);
         refreshPreviewButton.TabIndex = 2;
-        refreshPreviewButton.Text = "Actualiser la prévisualisation";
+        refreshPreviewButton.Text = "Actualiser la previsualisation";
         refreshPreviewButton.UseVisualStyleBackColor = true;
         refreshPreviewButton.Click += RefreshPreviewButton_Click;
         // 
@@ -449,7 +449,7 @@ partial class MainForm
         openExplorerCheckBox.Name = "openExplorerCheckBox";
         openExplorerCheckBox.Size = new System.Drawing.Size(252, 19);
         openExplorerCheckBox.TabIndex = 2;
-        openExplorerCheckBox.Text = "Ouvrir l'explorateur à la fin de la conversion";
+        openExplorerCheckBox.Text = "Ouvrir l'explorateur a la fin de la conversion";
         openExplorerCheckBox.UseVisualStyleBackColor = true;
         openExplorerCheckBox.CheckedChanged += OpenExplorerCheckBox_CheckedChanged;
         // 
@@ -461,7 +461,7 @@ partial class MainForm
         openLogCheckBox.Name = "openLogCheckBox";
         openLogCheckBox.Size = new System.Drawing.Size(267, 19);
         openLogCheckBox.TabIndex = 3;
-        openLogCheckBox.Text = "Afficher le journal détaillé après conversion";
+        openLogCheckBox.Text = "Afficher le journal detaille apres conversion";
         openLogCheckBox.UseVisualStyleBackColor = true;
         openLogCheckBox.CheckedChanged += OpenLogCheckBox_CheckedChanged;
         // 
@@ -523,7 +523,7 @@ partial class MainForm
         watchFolderTextBox.Location = new System.Drawing.Point(153, 3);
         watchFolderTextBox.Margin = new System.Windows.Forms.Padding(0, 3, 6, 3);
         watchFolderTextBox.Name = "watchFolderTextBox";
-        watchFolderTextBox.PlaceholderText = "Dossier à surveiller";
+        watchFolderTextBox.PlaceholderText = "Dossier a surveiller";
         watchFolderTextBox.Size = new System.Drawing.Size(510, 23);
         watchFolderTextBox.TabIndex = 1;
         // 
@@ -578,7 +578,7 @@ partial class MainForm
         previewGroup.Size = new System.Drawing.Size(501, 685);
         previewGroup.TabIndex = 1;
         previewGroup.TabStop = false;
-        previewGroup.Text = "Prévisualisation TIFF";
+        previewGroup.Text = "Previsualisation TIFF";
         // 
         // previewLayout
         // 
@@ -607,7 +607,7 @@ partial class MainForm
         previewStatusLabel.Name = "previewStatusLabel";
         previewStatusLabel.Size = new System.Drawing.Size(471, 15);
         previewStatusLabel.TabIndex = 0;
-        previewStatusLabel.Text = "Sélectionnez un PDF pour afficher l'aperçu.";
+        previewStatusLabel.Text = "Selectionnez un PDF pour afficher l'apercu.";
         // 
         // previewImagesLayout
         // 
@@ -700,7 +700,7 @@ partial class MainForm
         afterPreviewLabel.Name = "afterPreviewLabel";
         afterPreviewLabel.Size = new System.Drawing.Size(115, 15);
         afterPreviewLabel.TabIndex = 0;
-        afterPreviewLabel.Text = "Après conversion";
+        afterPreviewLabel.Text = "Apres conversion";
         // 
         // previewControlsPanel
         // 
@@ -779,7 +779,7 @@ partial class MainForm
         stopButton.Padding = new System.Windows.Forms.Padding(12, 6, 12, 6);
         stopButton.Size = new System.Drawing.Size(136, 39);
         stopButton.TabIndex = 1;
-        stopButton.Text = "Arrêter";
+        stopButton.Text = "Arreter";
         stopButton.UseVisualStyleBackColor = true;
         stopButton.Click += StopButton_Click;
         // 
@@ -796,7 +796,7 @@ partial class MainForm
         // 
         statusStripLabel.Name = "statusStripLabel";
         statusStripLabel.Size = new System.Drawing.Size(30, 17);
-        statusStripLabel.Text = "Prêt";
+        statusStripLabel.Text = "Pret";
         // 
         // MainForm
         // 
@@ -809,7 +809,7 @@ partial class MainForm
         Name = "MainForm";
         Padding = new System.Windows.Forms.Padding(9);
         StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-        Text = "Convertisseur PDF → TIFF";
+        Text = "Convertisseur PDF en TIFF";
         mainLayout.ResumeLayout(false);
         mainLayout.PerformLayout();
         leftLayout.ResumeLayout(false);
