@@ -37,6 +37,7 @@ partial class MainForm
         removeFilesButton = new System.Windows.Forms.Button();
         clearFilesButton = new System.Windows.Forms.Button();
         dropFilesLabel = new System.Windows.Forms.Label();
+        selectedFileDetailsLabel = new System.Windows.Forms.Label();
         filesListView = new System.Windows.Forms.ListView();
         fileColumnHeader = new System.Windows.Forms.ColumnHeader();
         directoryColumnHeader = new System.Windows.Forms.ColumnHeader();
@@ -52,6 +53,7 @@ partial class MainForm
         outputLayout = new System.Windows.Forms.TableLayoutPanel();
         outputFolderTextBox = new System.Windows.Forms.TextBox();
         browseOutputFolderButton = new System.Windows.Forms.Button();
+        openOutputFolderButton = new System.Windows.Forms.Button();
         openExplorerCheckBox = new System.Windows.Forms.CheckBox();
         openLogCheckBox = new System.Windows.Forms.CheckBox();
         automationGroup = new System.Windows.Forms.GroupBox();
@@ -60,6 +62,7 @@ partial class MainForm
         watchFolderTextBox = new System.Windows.Forms.TextBox();
         browseWatchFolderButton = new System.Windows.Forms.Button();
         watchFolderStatusLabel = new System.Windows.Forms.Label();
+        watchLogTextBox = new System.Windows.Forms.RichTextBox();
         previewGroup = new System.Windows.Forms.GroupBox();
         previewLayout = new System.Windows.Forms.TableLayoutPanel();
         previewStatusLabel = new System.Windows.Forms.Label();
@@ -163,11 +166,13 @@ partial class MainForm
         filesGroupLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
         filesGroupLayout.Controls.Add(filesButtonsPanel, 0, 0);
         filesGroupLayout.Controls.Add(dropFilesLabel, 0, 1);
-        filesGroupLayout.Controls.Add(filesListView, 0, 2);
+        filesGroupLayout.Controls.Add(selectedFileDetailsLabel, 0, 2);
+        filesGroupLayout.Controls.Add(filesListView, 0, 3);
         filesGroupLayout.Dock = System.Windows.Forms.DockStyle.Fill;
         filesGroupLayout.Location = new System.Drawing.Point(12, 28);
         filesGroupLayout.Name = "filesGroupLayout";
-        filesGroupLayout.RowCount = 3;
+        filesGroupLayout.RowCount = 4;
+        filesGroupLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         filesGroupLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         filesGroupLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         filesGroupLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
@@ -223,7 +228,7 @@ partial class MainForm
         clearFilesButton.Click += ClearFilesButton_Click;
         // 
         // dropFilesLabel
-        // 
+        //
         dropFilesLabel.AutoSize = true;
         dropFilesLabel.Dock = System.Windows.Forms.DockStyle.Fill;
         dropFilesLabel.ForeColor = System.Drawing.SystemColors.GrayText;
@@ -233,6 +238,18 @@ partial class MainForm
         dropFilesLabel.Size = new System.Drawing.Size(717, 30);
         dropFilesLabel.TabIndex = 1;
         dropFilesLabel.Text = "Glissez-déposez vos PDF ici ou utilisez le bouton Ajouter.";
+        //
+        // selectedFileDetailsLabel
+        //
+        selectedFileDetailsLabel.AutoSize = true;
+        selectedFileDetailsLabel.Dock = System.Windows.Forms.DockStyle.Fill;
+        selectedFileDetailsLabel.ForeColor = System.Drawing.SystemColors.GrayText;
+        selectedFileDetailsLabel.Location = new System.Drawing.Point(3, 79);
+        selectedFileDetailsLabel.Margin = new System.Windows.Forms.Padding(3, 0, 3, 8);
+        selectedFileDetailsLabel.Name = "selectedFileDetailsLabel";
+        selectedFileDetailsLabel.Size = new System.Drawing.Size(717, 30);
+        selectedFileDetailsLabel.TabIndex = 3;
+        selectedFileDetailsLabel.Text = "Sélectionnez un PDF pour afficher ses détails.";
         // 
         // filesListView
         // 
@@ -242,10 +259,10 @@ partial class MainForm
         filesListView.FullRowSelect = true;
         filesListView.GridLines = true;
         filesListView.HideSelection = false;
-        filesListView.Location = new System.Drawing.Point(3, 82);
+        filesListView.Location = new System.Drawing.Point(3, 112);
         filesListView.MultiSelect = true;
         filesListView.Name = "filesListView";
-        filesListView.Size = new System.Drawing.Size(717, 211);
+        filesListView.Size = new System.Drawing.Size(717, 181);
         filesListView.TabIndex = 2;
         filesListView.UseCompatibleStateImageBehavior = false;
         filesListView.View = System.Windows.Forms.View.Details;
@@ -369,11 +386,13 @@ partial class MainForm
         // 
         // outputLayout
         // 
-        outputLayout.ColumnCount = 2;
+        outputLayout.ColumnCount = 3;
         outputLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        outputLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
         outputLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
         outputLayout.Controls.Add(outputFolderTextBox, 0, 0);
         outputLayout.Controls.Add(browseOutputFolderButton, 1, 0);
+        outputLayout.Controls.Add(openOutputFolderButton, 2, 0);
         outputLayout.Controls.Add(openExplorerCheckBox, 0, 1);
         outputLayout.Controls.Add(openLogCheckBox, 0, 2);
         outputLayout.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -395,6 +414,7 @@ partial class MainForm
         outputFolderTextBox.PlaceholderText = "Choisissez un dossier...";
         outputFolderTextBox.Size = new System.Drawing.Size(620, 23);
         outputFolderTextBox.TabIndex = 0;
+        outputFolderTextBox.TextChanged += OutputFolderTextBox_TextChanged;
         // 
         // browseOutputFolderButton
         // 
@@ -407,9 +427,23 @@ partial class MainForm
         browseOutputFolderButton.Text = "Parcourir";
         browseOutputFolderButton.UseVisualStyleBackColor = true;
         browseOutputFolderButton.Click += BrowseOutputFolderButton_Click;
+        //
+        // openOutputFolderButton
+        //
+        openOutputFolderButton.AutoSize = true;
+        openOutputFolderButton.Enabled = false;
+        openOutputFolderButton.Location = new System.Drawing.Point(726, 3);
+        openOutputFolderButton.Name = "openOutputFolderButton";
+        openOutputFolderButton.Padding = new System.Windows.Forms.Padding(10, 4, 10, 4);
+        openOutputFolderButton.Size = new System.Drawing.Size(69, 33);
+        openOutputFolderButton.TabIndex = 4;
+        openOutputFolderButton.Text = "Ouvrir";
+        openOutputFolderButton.UseVisualStyleBackColor = true;
+        openOutputFolderButton.Click += OpenOutputFolderButton_Click;
         // 
         // openExplorerCheckBox
         // 
+        outputLayout.SetColumnSpan(openExplorerCheckBox, 3);
         openExplorerCheckBox.AutoSize = true;
         openExplorerCheckBox.Location = new System.Drawing.Point(3, 42);
         openExplorerCheckBox.Name = "openExplorerCheckBox";
@@ -421,6 +455,7 @@ partial class MainForm
         // 
         // openLogCheckBox
         // 
+        outputLayout.SetColumnSpan(openLogCheckBox, 3);
         openLogCheckBox.AutoSize = true;
         openLogCheckBox.Location = new System.Drawing.Point(3, 67);
         openLogCheckBox.Name = "openLogCheckBox";
@@ -438,7 +473,7 @@ partial class MainForm
         automationGroup.Location = new System.Drawing.Point(3, 609);
         automationGroup.Name = "automationGroup";
         automationGroup.Padding = new System.Windows.Forms.Padding(12);
-        automationGroup.Size = new System.Drawing.Size(747, 73);
+        automationGroup.Size = new System.Drawing.Size(747, 179);
         automationGroup.TabIndex = 3;
         automationGroup.TabStop = false;
         automationGroup.Text = "Automatisation";
@@ -454,26 +489,33 @@ partial class MainForm
         automationLayout.Controls.Add(watchFolderTextBox, 1, 0);
         automationLayout.Controls.Add(browseWatchFolderButton, 2, 0);
         automationLayout.Controls.Add(watchFolderStatusLabel, 0, 1);
+        automationLayout.Controls.Add(watchLogTextBox, 0, 2);
         automationLayout.Dock = System.Windows.Forms.DockStyle.Fill;
         automationLayout.Location = new System.Drawing.Point(12, 28);
         automationLayout.Name = "automationLayout";
-        automationLayout.RowCount = 2;
+        automationLayout.RowCount = 3;
         automationLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         automationLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
-        automationLayout.Size = new System.Drawing.Size(723, 33);
+        automationLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        automationLayout.Size = new System.Drawing.Size(723, 123);
         automationLayout.TabIndex = 0;
         // 
         // watchFolderCheckBox
         // 
+        watchFolderCheckBox.Appearance = System.Windows.Forms.Appearance.Button;
+        watchFolderCheckBox.AutoCheck = false;
         watchFolderCheckBox.AutoSize = true;
         watchFolderCheckBox.Location = new System.Drawing.Point(3, 3);
         watchFolderCheckBox.Margin = new System.Windows.Forms.Padding(3, 3, 6, 3);
+        watchFolderCheckBox.MinimumSize = new System.Drawing.Size(140, 0);
         watchFolderCheckBox.Name = "watchFolderCheckBox";
-        watchFolderCheckBox.Size = new System.Drawing.Size(144, 19);
+        watchFolderCheckBox.Padding = new System.Windows.Forms.Padding(10, 4, 10, 4);
+        watchFolderCheckBox.Size = new System.Drawing.Size(152, 29);
         watchFolderCheckBox.TabIndex = 0;
-        watchFolderCheckBox.Text = "Activer le dossier surveillé";
-        watchFolderCheckBox.UseVisualStyleBackColor = true;
-        watchFolderCheckBox.CheckedChanged += WatchFolderCheckBox_CheckedChanged;
+        watchFolderCheckBox.Text = "Activer la surveillance";
+        watchFolderCheckBox.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+        watchFolderCheckBox.UseVisualStyleBackColor = false;
+        watchFolderCheckBox.Click += WatchFolderCheckBox_Click;
         // 
         // watchFolderTextBox
         // 
@@ -498,7 +540,7 @@ partial class MainForm
         browseWatchFolderButton.Click += BrowseWatchFolderButton_Click;
         // 
         // watchFolderStatusLabel
-        // 
+        //
         automationLayout.SetColumnSpan(watchFolderStatusLabel, 3);
         watchFolderStatusLabel.AutoSize = true;
         watchFolderStatusLabel.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -509,6 +551,22 @@ partial class MainForm
         watchFolderStatusLabel.Size = new System.Drawing.Size(717, 15);
         watchFolderStatusLabel.TabIndex = 3;
         watchFolderStatusLabel.Text = "Surveillance inactive";
+        //
+        // watchLogTextBox
+        //
+        automationLayout.SetColumnSpan(watchLogTextBox, 3);
+        watchLogTextBox.BackColor = System.Drawing.SystemColors.Window;
+        watchLogTextBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+        watchLogTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
+        watchLogTextBox.Location = new System.Drawing.Point(3, 63);
+        watchLogTextBox.Margin = new System.Windows.Forms.Padding(3, 9, 3, 3);
+        watchLogTextBox.MinimumSize = new System.Drawing.Size(0, 48);
+        watchLogTextBox.Name = "watchLogTextBox";
+        watchLogTextBox.ReadOnly = true;
+        watchLogTextBox.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
+        watchLogTextBox.Size = new System.Drawing.Size(717, 57);
+        watchLogTextBox.TabIndex = 4;
+        watchLogTextBox.Text = "";
         // 
         // previewGroup
         // 
@@ -808,6 +866,7 @@ partial class MainForm
     private System.Windows.Forms.Button removeFilesButton;
     private System.Windows.Forms.Button clearFilesButton;
     private System.Windows.Forms.Label dropFilesLabel;
+    private System.Windows.Forms.Label selectedFileDetailsLabel;
     private System.Windows.Forms.ListView filesListView;
     private System.Windows.Forms.ColumnHeader fileColumnHeader;
     private System.Windows.Forms.ColumnHeader directoryColumnHeader;
@@ -823,6 +882,7 @@ partial class MainForm
     private System.Windows.Forms.TableLayoutPanel outputLayout;
     private System.Windows.Forms.TextBox outputFolderTextBox;
     private System.Windows.Forms.Button browseOutputFolderButton;
+    private System.Windows.Forms.Button openOutputFolderButton;
     private System.Windows.Forms.CheckBox openExplorerCheckBox;
     private System.Windows.Forms.CheckBox openLogCheckBox;
     private System.Windows.Forms.GroupBox automationGroup;
@@ -852,4 +912,5 @@ partial class MainForm
     private System.Windows.Forms.Button stopButton;
     private System.Windows.Forms.StatusStrip statusStrip;
     private System.Windows.Forms.ToolStripStatusLabel statusStripLabel;
+    private System.Windows.Forms.RichTextBox watchLogTextBox;
 }
