@@ -39,6 +39,7 @@ public partial class MainForm : Form
     private string _currentSuggestedSuffix = string.Empty;
     private bool _suffixUserEdited;
     private bool _isUpdatingSuffixText;
+    private bool _shouldAutoFitPreview = true;
 
     public MainForm()
     {
@@ -661,15 +662,17 @@ public partial class MainForm : Form
     {
         UpdateActions();
         UpdateSelectedFileDetails();
+        _shouldAutoFitPreview = true;
         await LoadPreviewAsync();
     }
 
     private async void RefreshPreviewButton_Click(object? sender, EventArgs e)
     {
+        _shouldAutoFitPreview = true;
         await LoadPreviewAsync(force: true);
     }
 
-        private async Task LoadPreviewAsync(bool force = false)
+    private async Task LoadPreviewAsync(bool force = false)
     {
         if (_isConverting && !force)
         {
@@ -719,6 +722,7 @@ public partial class MainForm : Form
                 afterPictureBox.Image = afterImage;
                 ApplyPreviewZoom(previewZoomTrackBar.Value / 100.0);
                 SetPreviewStatus($"Previsualisation : {Path.GetFileName(selected.Path)}");
+                AutoFitPreviewToWidthIfNeeded();
             }));
         }
         catch (OperationCanceledException)
@@ -783,6 +787,43 @@ public partial class MainForm : Form
         previewZoomValueLabel.Text = $"Zoom : {previewZoomTrackBar.Value}%";
     }
 
+    private void AutoFitPreviewToWidthIfNeeded()
+    {
+        if (!_shouldAutoFitPreview)
+        {
+            return;
+        }
+
+        if (_afterPreview is null)
+        {
+            _shouldAutoFitPreview = false;
+            return;
+        }
+
+        var availableWidth = afterPreviewPanel.ClientSize.Width;
+        if (availableWidth <= 0)
+        {
+            return;
+        }
+
+        var zoom = availableWidth / (double)_afterPreview.Width;
+        zoom = Math.Clamp(zoom, previewZoomTrackBar.Minimum / 100.0, previewZoomTrackBar.Maximum / 100.0);
+        var zoomPercent = (int)Math.Round(zoom * 100);
+        zoomPercent = Math.Max(previewZoomTrackBar.Minimum, Math.Min(previewZoomTrackBar.Maximum, zoomPercent));
+
+        _shouldAutoFitPreview = false;
+
+        if (previewZoomTrackBar.Value != zoomPercent)
+        {
+            previewZoomTrackBar.Value = zoomPercent;
+        }
+        else
+        {
+            ApplyPreviewZoom(zoomPercent / 100.0);
+            UpdatePreviewZoomLabel();
+        }
+    }
+
     private void ApplyPreviewZoom(double zoom)
     {
         if (InvokeRequired)
@@ -796,6 +837,11 @@ public partial class MainForm : Form
             afterPictureBox.Width = (int)(_afterPreview.Width * zoom);
             afterPictureBox.Height = (int)(_afterPreview.Height * zoom);
         }
+    }
+
+    private void AfterPreviewPanel_SizeChanged(object? sender, EventArgs e)
+    {
+        AutoFitPreviewToWidthIfNeeded();
     }
 
     private void AddFilesButton_Click(object? sender, EventArgs e)
@@ -846,6 +892,7 @@ public partial class MainForm : Form
     {
         UpdateProfileDetails();
         SaveSettings();
+        _shouldAutoFitPreview = true;
         _ = LoadPreviewAsync(force: true);
     }
 
