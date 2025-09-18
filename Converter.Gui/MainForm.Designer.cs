@@ -138,10 +138,10 @@ partial class MainForm
         leftLayout.Location = new System.Drawing.Point(3, 3);
         leftLayout.Name = "leftLayout";
         leftLayout.RowCount = 4;
-        leftLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
-        leftLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
-        leftLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
-        leftLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        leftLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 45F));
+        leftLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
+        leftLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
+        leftLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 15F));
         leftLayout.Size = new System.Drawing.Size(753, 685);
         leftLayout.TabIndex = 0;
         // 
@@ -284,7 +284,7 @@ partial class MainForm
         // 
         // profileGroup
         // 
-        profileGroup.AutoSize = true;
+        profileGroup.AutoSize = false;
         profileGroup.Controls.Add(profileLayout);
         profileGroup.Dock = System.Windows.Forms.DockStyle.Fill;
         profileGroup.Location = new System.Drawing.Point(3, 345);
@@ -306,7 +306,7 @@ partial class MainForm
         profileLayout.Name = "profileLayout";
         profileLayout.RowCount = 2;
         profileLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
-        profileLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        profileLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
         profileLayout.Size = new System.Drawing.Size(723, 92);
         profileLayout.TabIndex = 0;
         // 
@@ -358,20 +358,19 @@ partial class MainForm
         // 
         // profileDetailsLabel
         // 
-        profileDetailsLabel.AutoSize = false;
+        profileDetailsLabel.AutoSize = true;
         profileDetailsLabel.Dock = System.Windows.Forms.DockStyle.Fill;
         profileDetailsLabel.ForeColor = System.Drawing.SystemColors.ControlText;
         profileDetailsLabel.Location = new System.Drawing.Point(3, 44);
         profileDetailsLabel.Margin = new System.Windows.Forms.Padding(3, 0, 3, 3);
         profileDetailsLabel.Name = "profileDetailsLabel";
         profileDetailsLabel.Padding = new System.Windows.Forms.Padding(3);
-        profileDetailsLabel.Size = new System.Drawing.Size(717, 90);
         profileDetailsLabel.TabIndex = 1;
         profileDetailsLabel.Text = "Aucun profil sélectionné.";
         // 
         // outputGroup
         // 
-        outputGroup.AutoSize = true;
+        outputGroup.AutoSize = false;
         outputGroup.Controls.Add(outputLayout);
         outputGroup.Dock = System.Windows.Forms.DockStyle.Fill;
         outputGroup.Location = new System.Drawing.Point(3, 483);
@@ -515,13 +514,12 @@ partial class MainForm
         //
         // outputDetailsLabel
         //
-        outputDetailsLabel.AutoSize = false;
+        outputDetailsLabel.AutoSize = true;
         outputDetailsLabel.Dock = System.Windows.Forms.DockStyle.Fill;
         outputDetailsLabel.ForeColor = System.Drawing.SystemColors.ControlText;
         outputDetailsLabel.Location = new System.Drawing.Point(3, 165);
         outputDetailsLabel.Margin = new System.Windows.Forms.Padding(3, 6, 3, 3);
         outputDetailsLabel.Name = "outputDetailsLabel";
-        outputDetailsLabel.Size = new System.Drawing.Size(717, 51);
         outputDetailsLabel.TabIndex = 8;
         outputDetailsLabel.Text = "Dossier : (aucun)\nSuffixe : (aucun)\nTIFF multipage : fichier unique";
         // 
@@ -701,6 +699,7 @@ partial class MainForm
         afterPreviewPanel.Name = "afterPreviewPanel";
         afterPreviewPanel.Size = new System.Drawing.Size(230, 528);
         afterPreviewPanel.TabIndex = 1;
+        afterPreviewPanel.SizeChanged += AfterPreviewPanel_SizeChanged;
         // 
         // afterPictureBox
         // 
