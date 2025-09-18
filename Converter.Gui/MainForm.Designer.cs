@@ -138,10 +138,10 @@ partial class MainForm
         leftLayout.Location = new System.Drawing.Point(3, 3);
         leftLayout.Name = "leftLayout";
         leftLayout.RowCount = 4;
-        leftLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 45F));
-        leftLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
-        leftLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
-        leftLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        leftLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 40F));
+        leftLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
+        leftLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
+        leftLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 15F));
         leftLayout.Size = new System.Drawing.Size(753, 685);
         leftLayout.TabIndex = 0;
         // 
@@ -284,12 +284,13 @@ partial class MainForm
         // 
         // profileGroup
         // 
-        profileGroup.AutoSize = true;
+        profileGroup.AutoSize = false;
         profileGroup.Controls.Add(profileLayout);
         profileGroup.Dock = System.Windows.Forms.DockStyle.Fill;
         profileGroup.Location = new System.Drawing.Point(3, 345);
         profileGroup.Name = "profileGroup";
         profileGroup.Padding = new System.Windows.Forms.Padding(12);
+        profileGroup.MinimumSize = new System.Drawing.Size(0, 160);
         profileGroup.Size = new System.Drawing.Size(747, 132);
         profileGroup.TabIndex = 1;
         profileGroup.TabStop = false;
@@ -370,12 +371,13 @@ partial class MainForm
         // 
         // outputGroup
         // 
-        outputGroup.AutoSize = true;
+        outputGroup.AutoSize = false;
         outputGroup.Controls.Add(outputLayout);
         outputGroup.Dock = System.Windows.Forms.DockStyle.Fill;
         outputGroup.Location = new System.Drawing.Point(3, 483);
         outputGroup.Name = "outputGroup";
         outputGroup.Padding = new System.Windows.Forms.Padding(12);
+        outputGroup.MinimumSize = new System.Drawing.Size(0, 200);
         outputGroup.Size = new System.Drawing.Size(747, 230);
         outputGroup.TabIndex = 2;
         outputGroup.TabStop = false;
