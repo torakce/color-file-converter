@@ -15,7 +15,9 @@ public sealed class BatchConversionService
         string outputFolder,
         ConversionProfile profile,
         IProgress<BatchConversionProgress>? progress = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? fileNameSuffix = null,
+        bool splitMultipage = false)
     {
         if (inputFiles.Count == 0)
         {
@@ -31,24 +33,37 @@ public sealed class BatchConversionService
             cancellationToken.ThrowIfCancellationRequested();
 
             var input = inputFiles[i];
-            var output = Path.Combine(outputFolder, Path.ChangeExtension(Path.GetFileName(input), ".tif"));
+            var baseName = Path.GetFileNameWithoutExtension(input);
+            if (!string.IsNullOrEmpty(fileNameSuffix))
+            {
+                baseName += fileNameSuffix;
+            }
+
+            var singleOutput = Path.Combine(outputFolder, baseName + ".tif");
+            var splitPattern = Path.Combine(outputFolder, baseName + "_%03d.tif");
+            var progressOutput = splitMultipage ? splitPattern : singleOutput;
 
             progress?.Report(new BatchConversionProgress(
                 i,
                 inputFiles.Count,
                 input,
-                output,
+                progressOutput,
                 BatchConversionStage.Starting,
                 null));
 
-            var result = await ConvertSingleAsync(input, output, profile, cancellationToken).ConfigureAwait(false);
+            var result = await ConvertSingleAsync(
+                input,
+                splitMultipage ? splitPattern : singleOutput,
+                profile,
+                cancellationToken,
+                splitMultipage).ConfigureAwait(false);
             results.Add(result);
 
             progress?.Report(new BatchConversionProgress(
                 i + 1,
                 inputFiles.Count,
                 input,
-                output,
+                progressOutput,
                 BatchConversionStage.Completed,
                 result));
         }
@@ -58,27 +73,52 @@ public sealed class BatchConversionService
 
     private static async Task<FileConversionResult> ConvertSingleAsync(
         string input,
-        string output,
+        string outputPattern,
         ConversionProfile profile,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool splitMultipage)
     {
         var fileStopwatch = Stopwatch.StartNew();
         var extra = profile.ExtraParameters ?? Array.Empty<string>();
         string? error = null;
         bool success = false;
+        var producedFiles = Array.Empty<string>();
 
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(output)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(outputPattern)!);
+            var conversionStartUtc = DateTime.UtcNow;
             await GhostscriptRunner.ConvertPdfToTiffAsync(
                 input,
-                output,
+                outputPattern,
                 profile.Device,
                 profile.Dpi,
                 profile.Compression,
                 extra,
                 cancellationToken: cancellationToken).ConfigureAwait(false);
             success = true;
+
+            if (splitMultipage)
+            {
+                var directory = Path.GetDirectoryName(outputPattern)!;
+                var baseName = Path.GetFileNameWithoutExtension(outputPattern);
+                var searchPattern = baseName!.Replace("%03d", "*") + ".tif";
+                producedFiles = Directory
+                    .EnumerateFiles(directory, searchPattern)
+                    .Where(f => File.GetLastWriteTimeUtc(f) >= conversionStartUtc - TimeSpan.FromSeconds(1))
+                    .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+
+                if (producedFiles.Length == 0)
+                {
+                    success = false;
+                    error = "Aucun fichier genere";
+                }
+            }
+            else
+            {
+                producedFiles = new[] { outputPattern };
+            }
         }
         catch (OperationCanceledException)
         {
@@ -92,11 +132,11 @@ public sealed class BatchConversionService
         fileStopwatch.Stop();
 
         long inputSize = GetFileSizeSafe(input);
-        long? outputSize = success ? GetFileSizeSafe(output) : null;
+        long? outputSize = success ? producedFiles.Sum(GetFileSizeSafe) : null;
 
         return new FileConversionResult(
             input,
-            output,
+            producedFiles,
             success,
             error,
             fileStopwatch.Elapsed,
@@ -127,7 +167,7 @@ public sealed record BatchConversionResult(IReadOnlyList<FileConversionResult> F
 
 public sealed record FileConversionResult(
     string InputPath,
-    string OutputPath,
+    IReadOnlyList<string> OutputPaths,
     bool Success,
     string? ErrorMessage,
     TimeSpan Duration,

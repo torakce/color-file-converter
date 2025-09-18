@@ -10,6 +10,8 @@ internal sealed class UserSettings
     public string? LastProfileName { get; set; }
     public bool OpenExplorerAfterConversion { get; set; } = true;
     public bool OpenLogAfterConversion { get; set; }
+    public string? FileNameSuffix { get; set; }
+    public bool SeparateTiffPages { get; set; }
     public bool WatchFolderEnabled { get; set; }
     public string? WatchFolderPath { get; set; }
     public double PreviewZoom { get; set; } = 1.0;
