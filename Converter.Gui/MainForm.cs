@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -31,11 +32,13 @@ public partial class MainForm : Form
     private readonly HashSet<string> _watchQueue = new(StringComparer.OrdinalIgnoreCase);
     private readonly SemaphoreSlim _watchSemaphore = new(1, 1);
     private bool _isConverting;
-    private Image? _beforePreview;
     private Image? _afterPreview;
     private readonly List<WatchLogEntry> _watchLogs = new();
     private const int MaxWatchLogEntries = 200;
     private string? _currentWatchFolder;
+    private string _currentSuggestedSuffix = string.Empty;
+    private bool _suffixUserEdited;
+    private bool _isUpdatingSuffixText;
 
     public MainForm()
     {
@@ -53,7 +56,17 @@ public partial class MainForm : Form
         openPdfDialog.Multiselect = true;
         openPdfDialog.Filter = "PDF (*.pdf)|*.pdf|Tous les fichiers (*.*)|*.*";
 
+        _suffixUserEdited = !string.IsNullOrWhiteSpace(_settings.FileNameSuffix);
+
         RefreshProfiles();
+
+        if (!string.IsNullOrWhiteSpace(_settings.FileNameSuffix))
+        {
+            SetSuffixTextSafely(_settings.FileNameSuffix!);
+            _suffixUserEdited = true;
+        }
+
+        separateTiffCheckBox.Checked = _settings.SeparateTiffPages;
 
         if (!string.IsNullOrWhiteSpace(_settings.LastOutputFolder))
         {
@@ -83,6 +96,7 @@ public partial class MainForm : Form
         }
 
         UpdateOutputFolderControls();
+        UpdateOutputDetails();
         UpdateSelectedFileDetails();
         UpdateActions();
         statusStripLabel.Text = "Pret";
@@ -242,6 +256,41 @@ public partial class MainForm : Form
 
         var folder = outputFolderTextBox.Text.Trim();
         openOutputFolderButton.Enabled = Directory.Exists(folder);
+        UpdateOutputDetails();
+    }
+
+    private void UpdateOutputDetails()
+    {
+        if (InvokeRequired)
+        {
+            BeginInvoke(new Action(UpdateOutputDetails));
+            return;
+        }
+
+        var folder = outputFolderTextBox.Text.Trim();
+        var suffix = suffixTextBox.Text.Trim();
+        var separate = separateTiffCheckBox.Checked;
+
+        var builder = new StringBuilder();
+
+        if (string.IsNullOrWhiteSpace(folder))
+        {
+            builder.AppendLine("Dossier : (aucun)");
+        }
+        else
+        {
+            builder.AppendLine($"Dossier : {folder}");
+        }
+
+        builder.AppendLine(string.IsNullOrWhiteSpace(suffix)
+            ? "Suffixe : (aucun)"
+            : $"Suffixe : {suffix}");
+
+        builder.Append(separate
+            ? "TIFF multipage : un fichier par page"
+            : "TIFF multipage : fichier unique");
+
+        outputDetailsLabel.Text = builder.ToString();
     }
 
     private void UpdateWatchToggleAppearance()
@@ -370,7 +419,14 @@ public partial class MainForm : Form
 
             try
             {
-                result = await _conversionService.ConvertAsync(filePaths, outputFolder, profile, progress, token).ConfigureAwait(true);
+                result = await _conversionService.ConvertAsync(
+                    filePaths,
+                    outputFolder,
+                    profile,
+                    progress,
+                    token,
+                    GetOutputSuffix(),
+                    separateTiffCheckBox.Checked).ConfigureAwait(true);
             }
             catch (OperationCanceledException)
             {
@@ -430,7 +486,8 @@ public partial class MainForm : Form
             {
                 if (progress.Result.Success)
                 {
-                    item.SubItems[2].Text = "Succes";
+                    var count = progress.Result.OutputPaths.Count;
+                    item.SubItems[2].Text = count > 1 ? $"Succes ({count} fichiers)" : "Succes";
                     item.BackColor = Color.FromArgb(209, 231, 221);
                     item.ForeColor = Color.FromArgb(21, 87, 36);
                 }
@@ -475,6 +532,15 @@ public partial class MainForm : Form
             ? $"{successes.Count} fichier(s) converti(s)."
             : "Aucun fichier converti.";
 
+        if (successes.Count > 0)
+        {
+            var generated = successes.Sum(f => f.OutputPaths.Count);
+            if (generated > successes.Count)
+            {
+                message += Environment.NewLine + $"{generated} fichier(s) TIFF généré(s).";
+            }
+        }
+
         if (failures.Count > 0)
         {
             message += Environment.NewLine + string.Join(Environment.NewLine, failures.Select(f => $"- {Path.GetFileName(f.InputPath)} : {f.ErrorMessage}"));
@@ -489,11 +555,24 @@ public partial class MainForm : Form
         {
             try
             {
-                var first = successes.First();
-                Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{first.OutputPath}\"")
+                var firstOutput = successes.SelectMany(f => f.OutputPaths).FirstOrDefault();
+                ProcessStartInfo psi;
+                if (!string.IsNullOrEmpty(firstOutput))
                 {
-                    UseShellExecute = true
-                });
+                    psi = new ProcessStartInfo("explorer.exe", $"/select,\"{firstOutput}\"")
+                    {
+                        UseShellExecute = true
+                    };
+                }
+                else
+                {
+                    psi = new ProcessStartInfo("explorer.exe", $"\"{outputFolder}\"")
+                    {
+                        UseShellExecute = true
+                    };
+                }
+
+                Process.Start(psi);
             }
             catch (Exception ex)
             {
@@ -534,13 +613,14 @@ public partial class MainForm : Form
         writer.WriteLine($"Profil : {profile.Name} ({profile.Describe()})");
         writer.WriteLine($"Dossier de sortie : {outputFolder}");
         writer.WriteLine();
-        writer.WriteLine("Fichier;Duree;Entree;Sortie;Statut;Message");
+        writer.WriteLine("Fichier;Duree;Entree;Sortie;Fichiers generes;Statut;Message");
 
         foreach (var file in result.Files)
         {
             var status = file.Success ? "Succes" : "Erreur";
             var message = file.Success ? string.Empty : file.ErrorMessage ?? string.Empty;
-            writer.WriteLine($"{Path.GetFileName(file.InputPath)};{file.Duration.TotalSeconds:F1}s;{FormatBytes(file.InputSize)};{FormatBytes(file.OutputSize)};{status};{message.Replace(';', ',')}");
+            var generated = string.Join('|', file.OutputPaths.Select(p => Path.GetFileName(p)?.Replace(';', ',') ?? string.Empty));
+            writer.WriteLine($"{Path.GetFileName(file.InputPath)};{file.Duration.TotalSeconds:F1}s;{FormatBytes(file.InputSize)};{FormatBytes(file.OutputSize)};{generated};{status};{message.Replace(';', ',')}");
         }
 
         return logPath;
@@ -615,17 +695,14 @@ public partial class MainForm : Form
             return;
         }
 
-        string? beforePath = null;
         string? afterPath = null;
 
         try
         {
             SetPreviewStatus("Previsualisation en cours...");
 
-            beforePath = CreatePreviewTempFile(".png");
             afterPath = CreatePreviewTempFile(".tiff");
 
-            await GhostscriptRunner.RenderPdfAsync(selected.Path, beforePath, "png16m", 150, firstPage: 1, lastPage: 1, cancellationToken: token).ConfigureAwait(true);
             await GhostscriptRunner.ConvertPdfToTiffAsync(selected.Path, afterPath, profile.Device, profile.Dpi, profile.Compression, profile.ExtraParameters, 1, 1, token).ConfigureAwait(true);
 
             if (token.IsCancellationRequested)
@@ -633,16 +710,12 @@ public partial class MainForm : Form
                 return;
             }
 
-            var beforeImage = LoadImageSafely(beforePath);
             var afterImage = LoadImageSafely(afterPath);
 
             Invoke(new Action(() =>
             {
-                _beforePreview?.Dispose();
                 _afterPreview?.Dispose();
-                _beforePreview = beforeImage;
                 _afterPreview = afterImage;
-                beforePictureBox.Image = beforeImage;
                 afterPictureBox.Image = afterImage;
                 ApplyPreviewZoom(previewZoomTrackBar.Value / 100.0);
                 SetPreviewStatus($"Previsualisation : {Path.GetFileName(selected.Path)}");
@@ -658,11 +731,6 @@ public partial class MainForm : Form
         }
         finally
         {
-            if (beforePath is not null && File.Exists(beforePath))
-            {
-                try { File.Delete(beforePath); } catch { }
-            }
-
             if (afterPath is not null && File.Exists(afterPath))
             {
                 try { File.Delete(afterPath); } catch { }
@@ -686,11 +754,8 @@ public partial class MainForm : Form
 
     private void ClearPreview()
     {
-        _beforePreview?.Dispose();
         _afterPreview?.Dispose();
-        _beforePreview = null;
         _afterPreview = null;
-        beforePictureBox.Image = null;
         afterPictureBox.Image = null;
         SetPreviewStatus("Selectionnez un PDF pour afficher l'apercu.");
     }
@@ -724,12 +789,6 @@ public partial class MainForm : Form
         {
             BeginInvoke(new Action(() => ApplyPreviewZoom(zoom)));
             return;
-        }
-
-        if (_beforePreview is not null)
-        {
-            beforePictureBox.Width = (int)(_beforePreview.Width * zoom);
-            beforePictureBox.Height = (int)(_beforePreview.Height * zoom);
         }
 
         if (_afterPreview is not null)
@@ -794,12 +853,129 @@ public partial class MainForm : Form
     {
         if (profileComboBox.SelectedItem is ConversionProfile profile)
         {
-            profileDetailsLabel.Text = profile.Describe();
+            var compression = string.IsNullOrWhiteSpace(profile.Compression) ? "Auto" : profile.Compression;
+            var colorLabel = GetProfileColorLabel(profile.Device);
+            var extras = profile.ExtraParameters is { Count: > 0 }
+                ? string.Join(", ", profile.ExtraParameters)
+                : "Aucun";
+
+            profileDetailsLabel.Text =
+                $"Appareil : {profile.Device}{Environment.NewLine}" +
+                $"Compression : {compression}{Environment.NewLine}" +
+                $"Résolution : {profile.Dpi} dpi{Environment.NewLine}" +
+                $"Couleur : {colorLabel}{Environment.NewLine}" +
+                $"Paramètres avancés : {extras}";
+
+            UpdateSuggestedSuffix(profile, compression, colorLabel);
         }
         else
         {
-            profileDetailsLabel.Text = string.Empty;
+            profileDetailsLabel.Text = "Aucun profil sélectionné.";
+            _currentSuggestedSuffix = string.Empty;
         }
+    }
+
+    private static string GetProfileColorLabel(string device)
+    {
+        if (string.IsNullOrWhiteSpace(device))
+        {
+            return "Auto";
+        }
+
+        var normalized = device.ToLowerInvariant();
+        if (normalized.Contains("gray") || normalized.Contains("grey"))
+        {
+            return "Niveaux de gris";
+        }
+
+        if (normalized.Contains("g4") || normalized.Contains("mono") || normalized.Contains("bw"))
+        {
+            return "Noir et blanc";
+        }
+
+        return "Couleur";
+    }
+
+    private void UpdateSuggestedSuffix(ConversionProfile profile, string compression, string colorLabel)
+    {
+        var compressionPart = NormalizeSuffixPart(compression);
+        var colorPart = NormalizeSuffixPart(colorLabel);
+        var suffixBuilder = new StringBuilder();
+        suffixBuilder.Append('_');
+        suffixBuilder.Append(profile.Dpi);
+        suffixBuilder.Append("dpi");
+
+        if (!string.IsNullOrEmpty(compressionPart))
+        {
+            suffixBuilder.Append('_');
+            suffixBuilder.Append(compressionPart);
+        }
+
+        if (!string.IsNullOrEmpty(colorPart))
+        {
+            suffixBuilder.Append('_');
+            suffixBuilder.Append(colorPart);
+        }
+
+        _currentSuggestedSuffix = suffixBuilder.ToString();
+
+        if (!_suffixUserEdited || string.Equals(suffixTextBox.Text, _currentSuggestedSuffix, StringComparison.Ordinal))
+        {
+            SetSuffixTextSafely(_currentSuggestedSuffix);
+            _suffixUserEdited = false;
+        }
+    }
+
+    private static string NormalizeSuffixPart(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var builder = new StringBuilder();
+        foreach (var raw in value.Trim().Normalize(NormalizationForm.FormD).ToLowerInvariant())
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(raw) == UnicodeCategory.NonSpacingMark)
+            {
+                continue;
+            }
+
+            var c = raw;
+            if (char.IsLetterOrDigit(c))
+            {
+                builder.Append(c);
+            }
+            else if (c is ' ' or '-' or '_' or '.')
+            {
+                if (builder.Length > 0 && builder[^1] != '_')
+                {
+                    builder.Append('_');
+                }
+            }
+        }
+
+        return builder.ToString().Trim('_');
+    }
+
+    private void SetSuffixTextSafely(string text)
+    {
+        if (InvokeRequired)
+        {
+            BeginInvoke(new Action(() => SetSuffixTextSafely(text)));
+            return;
+        }
+
+        _isUpdatingSuffixText = true;
+        suffixTextBox.Text = text;
+        _isUpdatingSuffixText = false;
+        UpdateOutputDetails();
+    }
+
+    private string? GetOutputSuffix()
+    {
+        var suffix = suffixTextBox.Text.Trim();
+        return string.IsNullOrEmpty(suffix) ? null : suffix;
     }
 
     private void ManageProfilesButton_Click(object? sender, EventArgs e)
@@ -816,6 +992,24 @@ public partial class MainForm : Form
     }
 
     private void OutputFolderTextBox_TextChanged(object? sender, EventArgs e) => UpdateOutputFolderControls();
+
+    private void SuffixTextBox_TextChanged(object? sender, EventArgs e)
+    {
+        if (_isUpdatingSuffixText)
+        {
+            return;
+        }
+
+        _suffixUserEdited = !string.Equals(suffixTextBox.Text, _currentSuggestedSuffix, StringComparison.Ordinal);
+        UpdateOutputDetails();
+        SaveSettings();
+    }
+
+    private void SeparateTiffCheckBox_CheckedChanged(object? sender, EventArgs e)
+    {
+        UpdateOutputDetails();
+        SaveSettings();
+    }
 
     private void BrowseOutputFolderButton_Click(object? sender, EventArgs e)
     {
@@ -1007,13 +1201,18 @@ public partial class MainForm : Form
 
     private void QueueWatchFile(string path)
     {
+        bool added;
         lock (_watchQueue)
         {
-            if (!_watchQueue.Add(path))
-            {
-                return;
-            }
+            added = _watchQueue.Add(path);
         }
+
+        if (!added)
+        {
+            return;
+        }
+
+        AppendWatchLog($"PDF détecté : {Path.GetFileName(path)}");
 
         _ = ProcessWatchFileAsync(path);
     }
@@ -1049,8 +1248,36 @@ public partial class MainForm : Form
             {
                 await _conversionSemaphore.WaitAsync(token).ConfigureAwait(false);
                 conversionLockTaken = true;
-                await _conversionService.ConvertAsync(new[] { path }, outputFolder, profile, null, token).ConfigureAwait(false);
-                BeginInvoke(new Action(() => statusStripLabel.Text = $"Conversion auto : {Path.GetFileName(path)}"));
+                var watchResult = await _conversionService.ConvertAsync(
+                    new[] { path },
+                    outputFolder,
+                    profile,
+                    null,
+                    token,
+                    GetOutputSuffix(),
+                    separateTiffCheckBox.Checked).ConfigureAwait(false);
+                var failure = watchResult.Files.FirstOrDefault(f => !f.Success);
+                if (failure is not null)
+                {
+                    var error = string.IsNullOrWhiteSpace(failure.ErrorMessage) ? "erreur inconnue" : failure.ErrorMessage;
+                    AppendWatchLog($"Conversion échouée : {Path.GetFileName(path)} ({error})", Color.FromArgb(220, 53, 69));
+                    BeginInvoke(new Action(() => statusStripLabel.Text = $"Erreur conversion auto : {error}"));
+                }
+                else
+                {
+                    var outputNames = watchResult.Files
+                        .SelectMany(f => f.OutputPaths)
+                        .Select(Path.GetFileName)
+                        .Where(name => !string.IsNullOrWhiteSpace(name))
+                        .ToList();
+                    var outputsText = outputNames.Count > 0
+                        ? string.Join(", ", outputNames)
+                        : "aucun fichier généré";
+                    AppendWatchLog(
+                        $"Conversion terminée : {Path.GetFileName(path)} → {outputsText}",
+                        Color.FromArgb(25, 135, 84));
+                    BeginInvoke(new Action(() => statusStripLabel.Text = $"Conversion auto : {Path.GetFileName(path)}"));
+                }
             }
             finally
             {
@@ -1066,6 +1293,7 @@ public partial class MainForm : Form
         }
         catch (Exception ex)
         {
+            AppendWatchLog($"Erreur conversion : {Path.GetFileName(path)} ({ex.Message})", Color.FromArgb(220, 53, 69));
             BeginInvoke(new Action(() => statusStripLabel.Text = $"Erreur conversion auto : {ex.Message}"));
         }
         finally
@@ -1114,6 +1342,8 @@ public partial class MainForm : Form
         _settings.LastOutputFolder = outputFolderTextBox.Text.Trim();
         _settings.OpenExplorerAfterConversion = openExplorerCheckBox.Checked;
         _settings.OpenLogAfterConversion = openLogCheckBox.Checked;
+        _settings.FileNameSuffix = GetOutputSuffix();
+        _settings.SeparateTiffPages = separateTiffCheckBox.Checked;
         _settings.WatchFolderEnabled = watchFolderCheckBox.Checked;
         _settings.WatchFolderPath = watchFolderTextBox.Text.Trim();
         _settings.PreviewZoom = previewZoomTrackBar.Value / 100.0;

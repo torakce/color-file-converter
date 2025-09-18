@@ -56,6 +56,10 @@ partial class MainForm
         openOutputFolderButton = new System.Windows.Forms.Button();
         openExplorerCheckBox = new System.Windows.Forms.CheckBox();
         openLogCheckBox = new System.Windows.Forms.CheckBox();
+        suffixLabel = new System.Windows.Forms.Label();
+        suffixTextBox = new System.Windows.Forms.TextBox();
+        separateTiffCheckBox = new System.Windows.Forms.CheckBox();
+        outputDetailsLabel = new System.Windows.Forms.Label();
         automationGroup = new System.Windows.Forms.GroupBox();
         automationLayout = new System.Windows.Forms.TableLayoutPanel();
         watchFolderCheckBox = new System.Windows.Forms.CheckBox();
@@ -67,10 +71,6 @@ partial class MainForm
         previewLayout = new System.Windows.Forms.TableLayoutPanel();
         previewStatusLabel = new System.Windows.Forms.Label();
         previewImagesLayout = new System.Windows.Forms.TableLayoutPanel();
-        beforePreviewContainer = new System.Windows.Forms.Panel();
-        beforePreviewPanel = new System.Windows.Forms.Panel();
-        beforePictureBox = new System.Windows.Forms.PictureBox();
-        beforePreviewLabel = new System.Windows.Forms.Label();
         afterPreviewContainer = new System.Windows.Forms.Panel();
         afterPreviewPanel = new System.Windows.Forms.Panel();
         afterPictureBox = new System.Windows.Forms.PictureBox();
@@ -99,9 +99,6 @@ partial class MainForm
         previewGroup.SuspendLayout();
         previewLayout.SuspendLayout();
         previewImagesLayout.SuspendLayout();
-        beforePreviewContainer.SuspendLayout();
-        beforePreviewPanel.SuspendLayout();
-        ((System.ComponentModel.ISupportInitialize)beforePictureBox).BeginInit();
         afterPreviewContainer.SuspendLayout();
         afterPreviewPanel.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)afterPictureBox).BeginInit();
@@ -114,8 +111,8 @@ partial class MainForm
         // mainLayout
         // 
         mainLayout.ColumnCount = 2;
-        mainLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 60F));
-        mainLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 40F));
+        mainLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 55F));
+        mainLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 45F));
         mainLayout.Controls.Add(leftLayout, 0, 0);
         mainLayout.Controls.Add(previewGroup, 1, 0);
         mainLayout.Controls.Add(conversionProgressBar, 0, 1);
@@ -361,15 +358,16 @@ partial class MainForm
         // 
         // profileDetailsLabel
         // 
-        profileDetailsLabel.AutoSize = true;
+        profileDetailsLabel.AutoSize = false;
         profileDetailsLabel.Dock = System.Windows.Forms.DockStyle.Fill;
-        profileDetailsLabel.ForeColor = System.Drawing.SystemColors.GrayText;
+        profileDetailsLabel.ForeColor = System.Drawing.SystemColors.ControlText;
         profileDetailsLabel.Location = new System.Drawing.Point(3, 44);
         profileDetailsLabel.Margin = new System.Windows.Forms.Padding(3, 0, 3, 3);
         profileDetailsLabel.Name = "profileDetailsLabel";
-        profileDetailsLabel.Size = new System.Drawing.Size(717, 45);
+        profileDetailsLabel.Padding = new System.Windows.Forms.Padding(3);
+        profileDetailsLabel.Size = new System.Drawing.Size(717, 90);
         profileDetailsLabel.TabIndex = 1;
-        profileDetailsLabel.Text = "";
+        profileDetailsLabel.Text = "Aucun profil sélectionné.";
         // 
         // outputGroup
         // 
@@ -379,7 +377,7 @@ partial class MainForm
         outputGroup.Location = new System.Drawing.Point(3, 483);
         outputGroup.Name = "outputGroup";
         outputGroup.Padding = new System.Windows.Forms.Padding(12);
-        outputGroup.Size = new System.Drawing.Size(747, 120);
+        outputGroup.Size = new System.Drawing.Size(747, 230);
         outputGroup.TabIndex = 2;
         outputGroup.TabStop = false;
         outputGroup.Text = "Dossier de sortie";
@@ -393,16 +391,30 @@ partial class MainForm
         outputLayout.Controls.Add(outputFolderTextBox, 0, 0);
         outputLayout.Controls.Add(browseOutputFolderButton, 1, 0);
         outputLayout.Controls.Add(openOutputFolderButton, 2, 0);
-        outputLayout.Controls.Add(openExplorerCheckBox, 0, 1);
-        outputLayout.Controls.Add(openLogCheckBox, 0, 2);
+        outputLayout.Controls.Add(suffixLabel, 0, 1);
+        outputLayout.Controls.Add(suffixTextBox, 0, 2);
+        outputLayout.Controls.Add(separateTiffCheckBox, 0, 3);
+        outputLayout.Controls.Add(openExplorerCheckBox, 0, 4);
+        outputLayout.Controls.Add(openLogCheckBox, 0, 5);
+        outputLayout.Controls.Add(outputDetailsLabel, 0, 6);
+        outputLayout.SetColumnSpan(suffixLabel, 3);
+        outputLayout.SetColumnSpan(suffixTextBox, 3);
+        outputLayout.SetColumnSpan(separateTiffCheckBox, 3);
+        outputLayout.SetColumnSpan(openExplorerCheckBox, 3);
+        outputLayout.SetColumnSpan(openLogCheckBox, 3);
+        outputLayout.SetColumnSpan(outputDetailsLabel, 3);
         outputLayout.Dock = System.Windows.Forms.DockStyle.Fill;
         outputLayout.Location = new System.Drawing.Point(12, 28);
         outputLayout.Name = "outputLayout";
-        outputLayout.RowCount = 3;
+        outputLayout.RowCount = 7;
         outputLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         outputLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         outputLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
-        outputLayout.Size = new System.Drawing.Size(723, 80);
+        outputLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        outputLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        outputLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        outputLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        outputLayout.Size = new System.Drawing.Size(723, 190);
         outputLayout.TabIndex = 0;
         // 
         // outputFolderTextBox
@@ -436,34 +448,82 @@ partial class MainForm
         openOutputFolderButton.Name = "openOutputFolderButton";
         openOutputFolderButton.Padding = new System.Windows.Forms.Padding(10, 4, 10, 4);
         openOutputFolderButton.Size = new System.Drawing.Size(69, 33);
-        openOutputFolderButton.TabIndex = 4;
+        openOutputFolderButton.TabIndex = 2;
         openOutputFolderButton.Text = "Ouvrir";
         openOutputFolderButton.UseVisualStyleBackColor = true;
         openOutputFolderButton.Click += OpenOutputFolderButton_Click;
-        // 
+        //
+        // suffixLabel
+        //
+        suffixLabel.AutoSize = true;
+        suffixLabel.Dock = System.Windows.Forms.DockStyle.Fill;
+        suffixLabel.Location = new System.Drawing.Point(3, 39);
+        suffixLabel.Margin = new System.Windows.Forms.Padding(3, 10, 3, 0);
+        suffixLabel.Name = "suffixLabel";
+        suffixLabel.Size = new System.Drawing.Size(717, 15);
+        suffixLabel.TabIndex = 3;
+        suffixLabel.Text = "Suffixe ajouté au nom du fichier";
+        //
+        // suffixTextBox
+        //
+        suffixTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
+        suffixTextBox.Location = new System.Drawing.Point(3, 57);
+        suffixTextBox.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
+        suffixTextBox.Name = "suffixTextBox";
+        suffixTextBox.PlaceholderText = "ex : _300dpi_lzw_couleur";
+        suffixTextBox.Size = new System.Drawing.Size(717, 23);
+        suffixTextBox.TabIndex = 4;
+        suffixTextBox.TextChanged += SuffixTextBox_TextChanged;
+        //
+        // separateTiffCheckBox
+        //
+        separateTiffCheckBox.AutoSize = true;
+        separateTiffCheckBox.Location = new System.Drawing.Point(3, 89);
+        separateTiffCheckBox.Margin = new System.Windows.Forms.Padding(3, 6, 3, 0);
+        separateTiffCheckBox.Name = "separateTiffCheckBox";
+        separateTiffCheckBox.Size = new System.Drawing.Size(259, 19);
+        separateTiffCheckBox.TabIndex = 5;
+        separateTiffCheckBox.Text = "Créer un fichier TIFF par page (PDF multipages)";
+        separateTiffCheckBox.UseVisualStyleBackColor = true;
+        separateTiffCheckBox.CheckedChanged += SeparateTiffCheckBox_CheckedChanged;
+        //
         // openExplorerCheckBox
-        // 
-        outputLayout.SetColumnSpan(openExplorerCheckBox, 3);
+        //
         openExplorerCheckBox.AutoSize = true;
-        openExplorerCheckBox.Location = new System.Drawing.Point(3, 42);
+        openExplorerCheckBox.Checked = true;
+        openExplorerCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
+        openExplorerCheckBox.Location = new System.Drawing.Point(3, 114);
+        openExplorerCheckBox.Margin = new System.Windows.Forms.Padding(3, 6, 3, 0);
         openExplorerCheckBox.Name = "openExplorerCheckBox";
-        openExplorerCheckBox.Size = new System.Drawing.Size(252, 19);
-        openExplorerCheckBox.TabIndex = 2;
-        openExplorerCheckBox.Text = "Ouvrir l'explorateur a la fin de la conversion";
+        openExplorerCheckBox.Size = new System.Drawing.Size(248, 19);
+        openExplorerCheckBox.TabIndex = 6;
+        openExplorerCheckBox.Text = "Ouvrir l'explorateur après la conversion";
         openExplorerCheckBox.UseVisualStyleBackColor = true;
         openExplorerCheckBox.CheckedChanged += OpenExplorerCheckBox_CheckedChanged;
-        // 
+        //
         // openLogCheckBox
-        // 
-        outputLayout.SetColumnSpan(openLogCheckBox, 3);
+        //
         openLogCheckBox.AutoSize = true;
-        openLogCheckBox.Location = new System.Drawing.Point(3, 67);
+        openLogCheckBox.Location = new System.Drawing.Point(3, 140);
+        openLogCheckBox.Margin = new System.Windows.Forms.Padding(3, 6, 3, 0);
         openLogCheckBox.Name = "openLogCheckBox";
-        openLogCheckBox.Size = new System.Drawing.Size(267, 19);
-        openLogCheckBox.TabIndex = 3;
-        openLogCheckBox.Text = "Afficher le journal detaille apres conversion";
+        openLogCheckBox.Size = new System.Drawing.Size(213, 19);
+        openLogCheckBox.TabIndex = 7;
+        openLogCheckBox.Text = "Ouvrir le journal après la conversion";
         openLogCheckBox.UseVisualStyleBackColor = true;
         openLogCheckBox.CheckedChanged += OpenLogCheckBox_CheckedChanged;
+        //
+        // outputDetailsLabel
+        //
+        outputDetailsLabel.AutoSize = false;
+        outputDetailsLabel.Dock = System.Windows.Forms.DockStyle.Fill;
+        outputDetailsLabel.ForeColor = System.Drawing.SystemColors.ControlText;
+        outputDetailsLabel.Location = new System.Drawing.Point(3, 165);
+        outputDetailsLabel.Margin = new System.Windows.Forms.Padding(3, 6, 3, 3);
+        outputDetailsLabel.Name = "outputDetailsLabel";
+        outputDetailsLabel.Size = new System.Drawing.Size(717, 51);
+        outputDetailsLabel.TabIndex = 8;
+        outputDetailsLabel.Text = "Dossier : (aucun)\nSuffixe : (aucun)\nTIFF multipage : fichier unique";
         // 
         // automationGroup
         // 
@@ -504,13 +564,13 @@ partial class MainForm
         // 
         watchFolderCheckBox.Appearance = System.Windows.Forms.Appearance.Button;
         watchFolderCheckBox.AutoCheck = false;
-        watchFolderCheckBox.AutoSize = true;
+        watchFolderCheckBox.AutoSize = false;
         watchFolderCheckBox.Location = new System.Drawing.Point(3, 3);
         watchFolderCheckBox.Margin = new System.Windows.Forms.Padding(3, 3, 6, 3);
-        watchFolderCheckBox.MinimumSize = new System.Drawing.Size(140, 0);
+        watchFolderCheckBox.MinimumSize = new System.Drawing.Size(220, 0);
         watchFolderCheckBox.Name = "watchFolderCheckBox";
         watchFolderCheckBox.Padding = new System.Windows.Forms.Padding(10, 4, 10, 4);
-        watchFolderCheckBox.Size = new System.Drawing.Size(152, 29);
+        watchFolderCheckBox.Size = new System.Drawing.Size(220, 33);
         watchFolderCheckBox.TabIndex = 0;
         watchFolderCheckBox.Text = "Activer la surveillance";
         watchFolderCheckBox.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -611,11 +671,9 @@ partial class MainForm
         // 
         // previewImagesLayout
         // 
-        previewImagesLayout.ColumnCount = 2;
-        previewImagesLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
-        previewImagesLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
-        previewImagesLayout.Controls.Add(beforePreviewContainer, 0, 0);
-        previewImagesLayout.Controls.Add(afterPreviewContainer, 1, 0);
+        previewImagesLayout.ColumnCount = 1;
+        previewImagesLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        previewImagesLayout.Controls.Add(afterPreviewContainer, 0, 0);
         previewImagesLayout.Dock = System.Windows.Forms.DockStyle.Fill;
         previewImagesLayout.Location = new System.Drawing.Point(3, 26);
         previewImagesLayout.Name = "previewImagesLayout";
@@ -623,54 +681,15 @@ partial class MainForm
         previewImagesLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
         previewImagesLayout.Size = new System.Drawing.Size(471, 557);
         previewImagesLayout.TabIndex = 1;
-        // 
-        // beforePreviewContainer
-        // 
-        beforePreviewContainer.Controls.Add(beforePreviewPanel);
-        beforePreviewContainer.Controls.Add(beforePreviewLabel);
-        beforePreviewContainer.Dock = System.Windows.Forms.DockStyle.Fill;
-        beforePreviewContainer.Location = new System.Drawing.Point(3, 3);
-        beforePreviewContainer.Name = "beforePreviewContainer";
-        beforePreviewContainer.Size = new System.Drawing.Size(229, 551);
-        beforePreviewContainer.TabIndex = 0;
-        // 
-        // beforePreviewPanel
-        // 
-        beforePreviewPanel.AutoScroll = true;
-        beforePreviewPanel.Controls.Add(beforePictureBox);
-        beforePreviewPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-        beforePreviewPanel.Location = new System.Drawing.Point(0, 23);
-        beforePreviewPanel.Name = "beforePreviewPanel";
-        beforePreviewPanel.Size = new System.Drawing.Size(229, 528);
-        beforePreviewPanel.TabIndex = 1;
-        // 
-        // beforePictureBox
-        // 
-        beforePictureBox.Location = new System.Drawing.Point(0, 0);
-        beforePictureBox.Name = "beforePictureBox";
-        beforePictureBox.Size = new System.Drawing.Size(100, 50);
-        beforePictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-        beforePictureBox.TabIndex = 0;
-        beforePictureBox.TabStop = false;
-        // 
-        // beforePreviewLabel
-        // 
-        beforePreviewLabel.AutoSize = true;
-        beforePreviewLabel.Dock = System.Windows.Forms.DockStyle.Top;
-        beforePreviewLabel.Location = new System.Drawing.Point(0, 0);
-        beforePreviewLabel.Name = "beforePreviewLabel";
-        beforePreviewLabel.Size = new System.Drawing.Size(101, 15);
-        beforePreviewLabel.TabIndex = 0;
-        beforePreviewLabel.Text = "Avant conversion";
-        // 
+        //
         // afterPreviewContainer
-        // 
+        //
         afterPreviewContainer.Controls.Add(afterPreviewPanel);
         afterPreviewContainer.Controls.Add(afterPreviewLabel);
         afterPreviewContainer.Dock = System.Windows.Forms.DockStyle.Fill;
-        afterPreviewContainer.Location = new System.Drawing.Point(238, 3);
+        afterPreviewContainer.Location = new System.Drawing.Point(3, 3);
         afterPreviewContainer.Name = "afterPreviewContainer";
-        afterPreviewContainer.Size = new System.Drawing.Size(230, 551);
+        afterPreviewContainer.Size = new System.Drawing.Size(465, 551);
         afterPreviewContainer.TabIndex = 1;
         // 
         // afterPreviewPanel
@@ -698,9 +717,9 @@ partial class MainForm
         afterPreviewLabel.Dock = System.Windows.Forms.DockStyle.Top;
         afterPreviewLabel.Location = new System.Drawing.Point(0, 0);
         afterPreviewLabel.Name = "afterPreviewLabel";
-        afterPreviewLabel.Size = new System.Drawing.Size(115, 15);
+        afterPreviewLabel.Size = new System.Drawing.Size(131, 15);
         afterPreviewLabel.TabIndex = 0;
-        afterPreviewLabel.Text = "Apres conversion";
+        afterPreviewLabel.Text = "Aperçu après conversion";
         // 
         // previewControlsPanel
         // 
@@ -834,10 +853,6 @@ partial class MainForm
         previewLayout.ResumeLayout(false);
         previewLayout.PerformLayout();
         previewImagesLayout.ResumeLayout(false);
-        beforePreviewContainer.ResumeLayout(false);
-        beforePreviewContainer.PerformLayout();
-        beforePreviewPanel.ResumeLayout(false);
-        ((System.ComponentModel.ISupportInitialize)beforePictureBox).EndInit();
         afterPreviewContainer.ResumeLayout(false);
         afterPreviewContainer.PerformLayout();
         afterPreviewPanel.ResumeLayout(false);
@@ -885,6 +900,10 @@ partial class MainForm
     private System.Windows.Forms.Button openOutputFolderButton;
     private System.Windows.Forms.CheckBox openExplorerCheckBox;
     private System.Windows.Forms.CheckBox openLogCheckBox;
+    private System.Windows.Forms.Label suffixLabel;
+    private System.Windows.Forms.TextBox suffixTextBox;
+    private System.Windows.Forms.CheckBox separateTiffCheckBox;
+    private System.Windows.Forms.Label outputDetailsLabel;
     private System.Windows.Forms.GroupBox automationGroup;
     private System.Windows.Forms.TableLayoutPanel automationLayout;
     private System.Windows.Forms.CheckBox watchFolderCheckBox;
@@ -895,10 +914,6 @@ partial class MainForm
     private System.Windows.Forms.TableLayoutPanel previewLayout;
     private System.Windows.Forms.Label previewStatusLabel;
     private System.Windows.Forms.TableLayoutPanel previewImagesLayout;
-    private System.Windows.Forms.Panel beforePreviewContainer;
-    private System.Windows.Forms.Panel beforePreviewPanel;
-    private System.Windows.Forms.PictureBox beforePictureBox;
-    private System.Windows.Forms.Label beforePreviewLabel;
     private System.Windows.Forms.Panel afterPreviewContainer;
     private System.Windows.Forms.Panel afterPreviewPanel;
     private System.Windows.Forms.PictureBox afterPictureBox;
