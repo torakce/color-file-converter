@@ -1,10 +1,10 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Text.Json;
 
 namespace Converter.Gui.Services;
 
-internal sealed class UserSettings
+public sealed class UserSettings
 {
     public string? LastOutputFolder { get; set; }
     public string? LastProfileName { get; set; }
@@ -15,6 +15,11 @@ internal sealed class UserSettings
     public bool WatchFolderEnabled { get; set; }
     public string? WatchFolderPath { get; set; }
     public double PreviewZoom { get; set; } = 1.0;
+    public bool UseInputFolder { get; set; }
+    public string? LastDevice { get; set; }
+    public string? LastCompression { get; set; }
+    public int? LastDpi { get; set; }
+    public string? LastExtraParameters { get; set; }
 
     private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.General)
     {
