@@ -1,6 +1,6 @@
 # Script pour creer une version portable OPTIMISEE (plus legere)
 param(
-    [string]$OutputDir = "$PSScriptRoot\..\Release\PortableLight",
+    [string]$OutputDir = "$PSScriptRoot\..\Release\ColorFileConverter",
     [switch]$CleanBuild = $false
 )
 
@@ -57,15 +57,21 @@ if (!(Test-Path $OutputDir)) {
 $ProjectRoot = Resolve-Path "$PSScriptRoot\.."
 $GuiProject = Join-Path $ProjectRoot "Converter.Gui\Converter.Gui.csproj"
 
-Write-Host "Compilation OPTIMISEE (DLLs separees + trimming)..." -ForegroundColor Yellow
+Write-Host "Compilation OPTIMISEE (structure propre)..." -ForegroundColor Yellow
 Set-Location $ProjectRoot
 
-# Publication optimisee : pas de single-file, sans trimming (incompatible WinForms)
+# Dossier temporaire pour la compilation
+$TempDir = Join-Path $OutputDir "Temp"
+if (Test-Path $TempDir) {
+    Remove-Item $TempDir -Recurse -Force
+}
+
+# Publication optimisee vers dossier temporaire
 dotnet publish $GuiProject `
     --configuration Release `
     --runtime win-x64 `
     --self-contained true `
-    --output "$OutputDir\App" `
+    --output $TempDir `
     /p:PublishSingleFile=false `
     /p:PublishTrimmed=false `
     /p:IncludeNativeLibrariesForSelfExtract=false
@@ -74,7 +80,46 @@ if ($LASTEXITCODE -ne 0) {
     throw "Erreur compilation"
 }
 
-Write-Host "Application compilee!" -ForegroundColor Green
+Write-Host "Reorganisation de la structure..." -ForegroundColor Yellow
+
+# Creer la structure finale
+$RuntimeDir = Join-Path $OutputDir "Runtime"
+if (Test-Path $RuntimeDir) {
+    Remove-Item $RuntimeDir -Recurse -Force
+}
+New-Item -Path $RuntimeDir -ItemType Directory -Force | Out-Null
+
+# Copier l'executable principal a la racine
+$mainExe = Join-Path $TempDir "Converter.Gui.exe"
+Copy-Item $mainExe -Destination $OutputDir -Force
+Write-Host "  Exe principal: Converter.Gui.exe" -ForegroundColor Cyan
+
+# Copier les fichiers de configuration a la racine
+$configFiles = @("Converter.Gui.runtimeconfig.json", "Converter.Gui.deps.json")
+foreach ($configFile in $configFiles) {
+    $sourcePath = Join-Path $TempDir $configFile
+    if (Test-Path $sourcePath) {
+        Copy-Item $sourcePath -Destination $OutputDir -Force
+        Write-Host "  Config: $configFile" -ForegroundColor Cyan
+    }
+}
+
+# Modifier le runtimeconfig.json pour pointer vers Runtime
+$runtimeConfigPath = Join-Path $OutputDir "Converter.Gui.runtimeconfig.json"
+if (Test-Path $runtimeConfigPath) {
+    $runtimeConfig = Get-Content $runtimeConfigPath -Raw | ConvertFrom-Json
+    if (-not $runtimeConfig.runtimeOptions.additionalProbingPaths) {
+        $runtimeConfig.runtimeOptions | Add-Member -MemberType NoteProperty -Name "additionalProbingPaths" -Value @("./Runtime")
+    } else {
+        $runtimeConfig.runtimeOptions.additionalProbingPaths = @("./Runtime")
+    }
+    $runtimeConfig | ConvertTo-Json -Depth 10 | Set-Content $runtimeConfigPath -Encoding UTF8
+    Write-Host "  Config mise a jour pour Runtime" -ForegroundColor Cyan
+}
+
+# Copier toutes les dependances vers Runtime (sauf l'exe principal et configs)
+$excludeFiles = @("Converter.Gui.exe", "Converter.Gui.runtimeconfig.json", "Converter.Gui.deps.json")
+Get-ChildItem -Path $TempDir | Where-Object { $_.Name -notin $excludeFiles } | Copy-Item -Destination $RuntimeDir -Recurse -Force
 
 # Supprimer les fichiers inutiles pour reduire la taille
 $filesToRemove = @(
@@ -83,11 +128,10 @@ $filesToRemove = @(
 )
 
 Write-Host "Nettoyage des fichiers inutiles..." -ForegroundColor Yellow
-$appDir = Join-Path $OutputDir "App"
 foreach ($pattern in $filesToRemove) {
-    $files = Get-ChildItem -Path $appDir -Name $pattern -ErrorAction SilentlyContinue
+    $files = Get-ChildItem -Path $RuntimeDir -Name $pattern -Recurse -ErrorAction SilentlyContinue
     foreach ($file in $files) {
-        $fullPath = Join-Path $appDir $file
+        $fullPath = Join-Path $RuntimeDir $file
         try {
             Remove-Item $fullPath -Force -ErrorAction SilentlyContinue
             Write-Host "  Supprime: $file" -ForegroundColor DarkGray
@@ -95,13 +139,16 @@ foreach ($pattern in $filesToRemove) {
     }
 }
 
+# Supprimer le dossier temporaire
+Remove-Item -Path $TempDir -Recurse -Force
+
 # Integration Ghostscript MINIMALE (seulement les fichiers essentiels)
 $GhostscriptSource = Find-GhostscriptInstallation
 
 if ($GhostscriptSource) {
     Write-Host "Integration Ghostscript MINIMALE..." -ForegroundColor Yellow
     
-    $GhostscriptDir = Join-Path $OutputDir "App\Ghostscript"
+    $GhostscriptDir = Join-Path $RuntimeDir "Ghostscript"
     New-Item -Path $GhostscriptDir -ItemType Directory -Force | Out-Null
     
     # Copier SEULEMENT les fichiers essentiels
@@ -155,27 +202,33 @@ if ($GhostscriptSource) {
 
 # Documentation
 $ReadmeContent = @"
-Color File Converter - Version Portable LEGERE
-==============================================
+Color File Converter - Version Portable OPTIMISEE
+================================================
 
-VERSION OPTIMISEE pour reseaux lents
-Taille reduite de ~197MB vers ~60-80MB
+🚀 STRUCTURE PROPRE - EXE FACILEMENT ACCESSIBLE 
 
-CONTENU OPTIMISE:
-- Converter.Gui.exe : Application principale (plus petit)
-- DLLs separees : Chargement plus rapide en reseau
-- Ghostscript minimal : Seulement les fichiers essentiels
+STRUCTURE:
+- Converter.Gui.exe     : Application principale (a la racine - facile a trouver!)
+- Runtime/              : Toutes les dependances et DLLs
+- README.txt           : Ce fichier
 
 UTILISATION:
-1. Copiez ce dossier sur votre serveur reseau
-2. Les utilisateurs lancent Converter.Gui.exe
-3. Plus rapide a charger depuis le reseau!
+1. Double-cliquez directement sur Converter.Gui.exe
+2. Pas besoin de chercher dans des sous-dossiers!
+3. Structure propre et professionnelle
 
-AVANTAGES VERSION LEGERE:
-- Lancement 2-3x plus rapide en reseau
-- Moins de bande passante utilisee
-- Cache Windows plus efficace (DLLs reutilisees)
-- Ideal pour les connexions lentes
+FONCTIONNALITES:
+✅ Conversion PDF vers TIFF (mono-page et multi-page)  
+✅ Apercu avec navigation par pages (◀ ▶)
+✅ Interface intuitive avec zoom et pan
+✅ Profils personnalisables pour differents besoins
+✅ Mode portable - aucune installation requise
+
+AVANTAGES:
+- Executable principal visible immediatement
+- Dependances organisees dans Runtime/
+- Lancement rapide et fiable
+- Ideal pour distribution
 
 Version generee: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
 "@
@@ -184,29 +237,24 @@ $ReadmeContent | Out-File -FilePath (Join-Path $OutputDir "README.txt") -Encodin
 
 # Statistiques
 Write-Host ""
-Write-Host "=== VERSION LEGERE CREEE! ===" -ForegroundColor Green
+Write-Host "=== VERSION OPTIMISEE CREEE! ===" -ForegroundColor Green
 Write-Host "Emplacement: $OutputDir" -ForegroundColor White
 
-$AppPath = Join-Path $OutputDir "App"
-if (Test-Path $AppPath) {
-    $totalSize = (Get-ChildItem -Path $AppPath -Recurse -File | Measure-Object -Property Length -Sum).Sum
+if (Test-Path $OutputDir) {
+    $totalSize = (Get-ChildItem -Path $OutputDir -Recurse -File | Measure-Object -Property Length -Sum).Sum
     $sizeMB = [Math]::Round($totalSize / 1MB, 2)
-    $fileCount = (Get-ChildItem -Path $AppPath -Recurse -File).Count
+    $fileCount = (Get-ChildItem -Path $OutputDir -Recurse -File).Count
     Write-Host "Taille: $sizeMB MB ($fileCount fichiers)" -ForegroundColor White
-    
-    $originalSize = 197.42
-    $reduction = [Math]::Round((($originalSize - $sizeMB) / $originalSize) * 100, 1)
-    Write-Host "Reduction: $reduction% par rapport a la version complete" -ForegroundColor Green
 }
 
-$gsDir = Join-Path $AppPath "Ghostscript"
+$gsDir = Join-Path $RuntimeDir "Ghostscript"
 $hasGs = Test-Path $gsDir
 Write-Host "Ghostscript: $(if($hasGs) { 'Minimal inclus' } else { 'Non inclus' })" -ForegroundColor White
 
 Write-Host ""
-Write-Host "OPTIMISATIONS APPLIQUEES:" -ForegroundColor Yellow
-Write-Host "- Exe separe des DLLs (plus rapide en reseau)" -ForegroundColor White  
-Write-Host "- Trimming .NET active (suppression code inutilise)" -ForegroundColor White
+Write-Host "STRUCTURE APPLIQUEE:" -ForegroundColor Yellow
+Write-Host "- Converter.Gui.exe visible a la racine" -ForegroundColor White  
+Write-Host "- Runtime/ contient toutes les dependances" -ForegroundColor White
 Write-Host "- Fichiers debug supprimes" -ForegroundColor White
-Write-Host "- Ghostscript minimal (essentiels seulement)" -ForegroundColor White
-Write-Host "- Ressources reduites au strict minimum" -ForegroundColor White
+Write-Host "- Ghostscript integre dans Runtime/" -ForegroundColor White
+Write-Host "- Structure professionnelle et propre" -ForegroundColor White
