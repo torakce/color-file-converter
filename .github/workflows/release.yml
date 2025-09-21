@@ -20,13 +20,13 @@ jobs:
       with:
         dotnet-version: 8.0.x
         
-    - name: Build Optimized Portable Version
+    - name: Build Simple Working Version
       run: |
-        powershell -ExecutionPolicy Bypass -File "scripts/Build-Portable-Light.ps1" -CleanBuild
+        dotnet publish Converter.Gui --configuration Release --runtime win-x64 --self-contained true --output Release/SimpleWorking /p:PublishSingleFile=false /p:PublishTrimmed=false
         
     - name: Package Release
       run: |
-        Compress-Archive -Path "Release/ColorFileConverter/*" -DestinationPath "ColorFileConverter-${{ github.ref_name }}.zip"
+        Compress-Archive -Path "Release/SimpleWorking/*" -DestinationPath "ColorFileConverter-${{ github.ref_name }}.zip"
         
     - name: Create Release
       uses: softprops/action-gh-release@v1
