@@ -70,6 +70,14 @@ public partial class MainForm : Form
     private bool _isPanning = false;
     private Point _lastPanPoint = Point.Empty;
     
+    // Navigation par pages
+    private List<Image>? _allPreviewPages;
+    private int _currentPageIndex = 0;
+    private int _totalPages = 0;
+    private Button _previousPageButton;
+    private Button _nextPageButton;
+    private Label _pageInfoLabel;
+    
 
 
     public MainForm()
@@ -951,7 +959,7 @@ public partial class MainForm : Form
         }
     }
 
-    private void UpdateFilesList()
+    private void UpdateFilesList(bool selectLast = false)
     {
         _filesList.Items.Clear();
         
@@ -966,6 +974,12 @@ public partial class MainForm : Form
             foreach (var file in _files)
             {
                 _filesList.Items.Add(Path.GetFileName(file));
+            }
+            
+            // Sélectionner le dernier fichier ajouté si demandé
+            if (selectLast)
+            {
+                _filesList.SelectedIndex = _files.Count - 1;
             }
         }
     }
@@ -1082,7 +1096,7 @@ public partial class MainForm : Form
 
             // Ajouter les fichiers valides
             _files.AddRange(validFiles);
-            UpdateFilesList();
+            UpdateFilesList(selectLast: validFiles.Count > 0); // Sélectionner le dernier si des fichiers ont été ajoutés
             UpdateActions();
 
             // Générer le message de feedback
@@ -1261,7 +1275,7 @@ public partial class MainForm : Form
 
             // Ajouter les fichiers valides
             _files.AddRange(validFiles);
-            UpdateFilesList();
+            UpdateFilesList(selectLast: validFiles.Count > 0); // Sélectionner le dernier si des fichiers ont été ajoutés
             UpdateActions();
 
             // Log du résultat
@@ -1862,11 +1876,43 @@ public partial class MainForm : Form
             TextAlign = ContentAlignment.MiddleLeft
         };
 
+        // Boutons de navigation par page
+        _previousPageButton = new Button
+        {
+            Text = "◀",
+            Location = new Point(280, 15),
+            Size = new Size(35, 30),
+            UseVisualStyleBackColor = true,
+            Enabled = false,
+            Font = new Font(Font.FontFamily, 12f, FontStyle.Bold)
+        };
+        _previousPageButton.Click += PreviousPage_Click;
+
+        _pageInfoLabel = new Label
+        {
+            Text = "0/0",
+            Location = new Point(320, 20),
+            Size = new Size(60, 20),
+            TextAlign = ContentAlignment.MiddleCenter,
+            Font = new Font(Font.FontFamily, 8.25f, FontStyle.Regular)
+        };
+
+        _nextPageButton = new Button
+        {
+            Text = "▶",
+            Location = new Point(385, 15),
+            Size = new Size(35, 30),
+            UseVisualStyleBackColor = true,
+            Enabled = false,
+            Font = new Font(Font.FontFamily, 12f, FontStyle.Bold)
+        };
+        _nextPageButton.Click += NextPage_Click;
+
         // Bouton pour actualiser l'aperçu
         _refreshPreviewButton = new Button
         {
             Text = "Actualiser",
-            Location = new Point(280, 15),
+            Location = new Point(430, 15),
             Size = new Size(80, 30),
             UseVisualStyleBackColor = true
         };
@@ -1901,6 +1947,9 @@ public partial class MainForm : Form
         // Assemblage des contrôles
         zoomPanel.Controls.Add(_zoomTrackBar);
         zoomPanel.Controls.Add(_zoomLabel);
+        zoomPanel.Controls.Add(_previousPageButton);
+        zoomPanel.Controls.Add(_pageInfoLabel);
+        zoomPanel.Controls.Add(_nextPageButton);
         zoomPanel.Controls.Add(_refreshPreviewButton);
 
         // IMPORTANT: L'ordre d'ajout avec Dock est crucial
@@ -1935,43 +1984,40 @@ public partial class MainForm : Form
         if (_currentPreviewImage == null || _zoomTrackBar == null)
             return;
 
-        // Zoom avec Ctrl+molette
-        if (Control.ModifierKeys == Keys.Control)
+        // Zoom avec molette (sans Ctrl nécessaire)
+        // Position du curseur dans la PictureBox pour centrer le zoom
+        var mousePos = _previewPictureBox!.PointToClient(Cursor.Position);
+        var oldZoomFactor = _zoomFactor;
+        
+        int currentZoom = _zoomTrackBar.Value;
+        int newZoom;
+
+        if (e.Delta > 0)
         {
-            // Position du curseur dans la PictureBox pour centrer le zoom
-            var mousePos = _previewPictureBox!.PointToClient(Cursor.Position);
-            var oldZoomFactor = _zoomFactor;
+            // Molette vers le haut : zoom in (plus doux: 10%)
+            newZoom = Math.Min(_zoomTrackBar.Maximum, currentZoom + 10);
+        }
+        else
+        {
+            // Molette vers le bas : zoom out (plus doux: 10%)
+            newZoom = Math.Max(_zoomTrackBar.Minimum, currentZoom - 10);
+        }
+
+        if (newZoom != currentZoom)
+        {
+            _zoomTrackBar.Value = newZoom;
+            _zoomLabel!.Text = $"{newZoom}%";
+            _zoomFactor = newZoom / 100.0f;
             
-            int currentZoom = _zoomTrackBar.Value;
-            int newZoom;
-
-            if (e.Delta > 0)
+            // Ajuster le pan pour centrer le zoom sur le curseur
+            if (oldZoomFactor > 0)
             {
-                // Molette vers le haut : zoom in (plus doux: 10%)
-                newZoom = Math.Min(_zoomTrackBar.Maximum, currentZoom + 10);
+                var zoomRatio = _zoomFactor / oldZoomFactor;
+                _panOffset.X = mousePos.X - (mousePos.X - _panOffset.X) * zoomRatio;
+                _panOffset.Y = mousePos.Y - (mousePos.Y - _panOffset.Y) * zoomRatio;
             }
-            else
-            {
-                // Molette vers le bas : zoom out (plus doux: 10%)
-                newZoom = Math.Max(_zoomTrackBar.Minimum, currentZoom - 10);
-            }
-
-            if (newZoom != currentZoom)
-            {
-                _zoomTrackBar.Value = newZoom;
-                _zoomLabel!.Text = $"{newZoom}%";
-                _zoomFactor = newZoom / 100.0f;
-                
-                // Ajuster le pan pour centrer le zoom sur le curseur
-                if (oldZoomFactor > 0)
-                {
-                    var zoomRatio = _zoomFactor / oldZoomFactor;
-                    _panOffset.X = mousePos.X - (mousePos.X - _panOffset.X) * zoomRatio;
-                    _panOffset.Y = mousePos.Y - (mousePos.Y - _panOffset.Y) * zoomRatio;
-                }
-                
-                _previewPictureBox.Invalidate(); // Redessiner
-            }
+            
+            _previewPictureBox.Invalidate(); // Redessiner
         }
     }
 
@@ -2010,6 +2056,15 @@ public partial class MainForm : Form
     {
         if (e.Button == MouseButtons.Left && _currentPreviewImage != null)
         {
+            // Si c'est le premier pan et que _panOffset est vide, l'initialiser avec la position centrée actuelle
+            if (_panOffset == PointF.Empty)
+            {
+                var scaledWidth = (int)(_currentPreviewImage.Width * _zoomFactor);
+                var scaledHeight = (int)(_currentPreviewImage.Height * _zoomFactor);
+                _panOffset.X = (_previewPictureBox!.Width - scaledWidth) / 2.0f;
+                _panOffset.Y = (_previewPictureBox.Height - scaledHeight) / 2.0f;
+            }
+            
             _isPanning = true;
             _lastPanPoint = e.Location;
             _previewPictureBox!.Cursor = Cursors.Hand;
@@ -2052,6 +2107,155 @@ public partial class MainForm : Form
         
         // Redessiner avec le nouveau zoom
         _previewPictureBox?.Invalidate();
+    }
+
+    private void ApplyFitToWidthZoom()
+    {
+        if (_currentPreviewImage == null || _zoomTrackBar == null || _previewPictureBox == null)
+            return;
+
+        // Attendre que la PictureBox soit correctement dimensionnée
+        if (_previewPictureBox.Width <= 0 || _currentPreviewImage.Width <= 0)
+            return;
+
+        // Calculer le zoom pour ajuster la largeur de l'image à la largeur de la PictureBox (moins une petite marge)
+        var availableWidth = _previewPictureBox.Width - 20; // Marge de 10px de chaque côté
+        var fitZoomFactor = (float)availableWidth / _currentPreviewImage.Width;
+        var fitZoomPercent = (int)(fitZoomFactor * 100);
+        
+        // Limiter le zoom entre les bornes du TrackBar
+        fitZoomPercent = Math.Max(_zoomTrackBar.Minimum, Math.Min(_zoomTrackBar.Maximum, fitZoomPercent));
+        
+        // Appliquer le zoom fit-to-width seulement si c'est différent du zoom actuel
+        if (fitZoomPercent != _zoomTrackBar.Value)
+        {
+            _zoomTrackBar.Value = fitZoomPercent;
+            _zoomFactor = fitZoomPercent / 100.0f;
+            _zoomLabel!.Text = $"{fitZoomPercent}%";
+            
+            // Réinitialiser le pan pour centrer l'image
+            _panOffset = PointF.Empty;
+            
+            // Redessiner avec le nouveau zoom
+            _previewPictureBox.Invalidate();
+        }
+    }
+
+    private void LoadAllPreviewPages(string tiffPath)
+    {
+        // Nettoyer les pages précédentes
+        if (_allPreviewPages != null)
+        {
+            foreach (var page in _allPreviewPages)
+            {
+                page?.Dispose();
+            }
+        }
+        _allPreviewPages = new List<Image>();
+
+        try
+        {
+            using var originalImage = new Bitmap(tiffPath);
+            
+            // Compter le nombre de pages/frames dans le TIFF
+            var frameCount = originalImage.GetFrameCount(System.Drawing.Imaging.FrameDimension.Page);
+            
+            for (int i = 0; i < frameCount; i++)
+            {
+                // Sélectionner la frame
+                originalImage.SelectActiveFrame(System.Drawing.Imaging.FrameDimension.Page, i);
+                
+                // Créer une copie optimisée de la page
+                const int maxPreviewSize = 2048; // Limite pour optimiser la mémoire
+                
+                if (originalImage.Width > maxPreviewSize || originalImage.Height > maxPreviewSize)
+                {
+                    var scale = Math.Min((float)maxPreviewSize / originalImage.Width, 
+                                       (float)maxPreviewSize / originalImage.Height);
+                    var newWidth = (int)(originalImage.Width * scale);
+                    var newHeight = (int)(originalImage.Height * scale);
+                    
+                    var resizedPage = new Bitmap(newWidth, newHeight);
+                    using var graphics = Graphics.FromImage(resizedPage);
+                    graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                    graphics.DrawImage(originalImage, 0, 0, newWidth, newHeight);
+                    
+                    _allPreviewPages.Add(resizedPage);
+                }
+                else
+                {
+                    _allPreviewPages.Add(new Bitmap(originalImage));
+                }
+            }
+            
+            _logger.LogInfo("Preview", $"Chargé {frameCount} page(s) pour navigation", tiffPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Preview", "Erreur lors du chargement des pages", ex, tiffPath);
+            _allPreviewPages = new List<Image>();
+        }
+    }
+
+    private void DisplayCurrentPage()
+    {
+        if (_allPreviewPages == null || _currentPageIndex < 0 || _currentPageIndex >= _allPreviewPages.Count)
+            return;
+
+        // Nettoyer l'image précédente
+        _currentPreviewImage?.Dispose();
+        
+        // Créer une copie de la page courante
+        var currentPage = _allPreviewPages[_currentPageIndex];
+        _currentPreviewImage = new Bitmap(currentPage);
+        
+        // Réinitialiser pan et zoom
+        _panOffset = PointF.Empty;
+        _zoomFactor = _zoomTrackBar!.Value / 100.0f;
+        
+        // S'assurer que la PictureBox n'a pas d'image (on dessine manuellement)
+        _previewPictureBox!.Image?.Dispose();
+        _previewPictureBox.Image = null;
+        
+        // Redessiner avec le nouveau système
+        _previewPictureBox.Invalidate();
+        
+        // Force le redraw
+        _previewPictureBox.Refresh();
+        _previewPanel.Refresh();
+        
+        // Appliquer le zoom fit-to-width après que les contrôles soient dimensionnés
+        this.BeginInvoke(new Action(ApplyFitToWidthZoom));
+    }
+
+    private void UpdatePageNavigation()
+    {
+        // Mettre à jour le label d'information
+        _pageInfoLabel!.Text = _totalPages > 0 ? $"{_currentPageIndex + 1}/{_totalPages}" : "0/0";
+        
+        // Activer/désactiver les boutons selon la position
+        _previousPageButton!.Enabled = _currentPageIndex > 0;
+        _nextPageButton!.Enabled = _currentPageIndex < _totalPages - 1;
+    }
+
+    private void PreviousPage_Click(object? sender, EventArgs e)
+    {
+        if (_currentPageIndex > 0)
+        {
+            _currentPageIndex--;
+            DisplayCurrentPage();
+            UpdatePageNavigation();
+        }
+    }
+
+    private void NextPage_Click(object? sender, EventArgs e)
+    {
+        if (_currentPageIndex < _totalPages - 1)
+        {
+            _currentPageIndex++;
+            DisplayCurrentPage();
+            UpdatePageNavigation();
+        }
     }
 
     private async void RefreshPreview()
@@ -2129,6 +2333,7 @@ public partial class MainForm : Form
             try
             {
                 // Conversion avec les paramètres utilisateur actuels pour aperçu
+                // Extraire toutes les pages pour permettre la navigation
                 await GhostscriptRunner.ConvertPdfToTiffAsync(
                     pdfPath, 
                     tempTiffPath,
@@ -2136,67 +2341,38 @@ public partial class MainForm : Form
                     dpi: activeProfile.Dpi,                // DPI des paramètres utilisateur
                     compression: activeProfile.Compression, // Compression des paramètres utilisateur
                     extraParameters: activeProfile.ExtraParameters, // Paramètres extra (lissage, etc.)
-                    firstPage: 1,                            // Première page uniquement pour aperçu
-                    lastPage: 1,                             // Première page uniquement pour aperçu
+                    firstPage: null,                         // Toutes les pages pour navigation
+                    lastPage: null,                          // Toutes les pages pour navigation
                     cancellationToken: _previewCts.Token);
 
                 if (_previewCts.Token.IsCancellationRequested)
                     return;
 
-                // Chargement de l'image générée et affichage des informations
+                // Chargement des pages multiples pour navigation
                 if (File.Exists(tempTiffPath))
                 {
                     var fileInfo = new FileInfo(tempTiffPath);
                     
-                    // Optimisation mémoire : créer une version redimensionnée pour l'aperçu
-                    using var fileStream = new FileStream(tempTiffPath, FileMode.Open, FileAccess.Read);
-                    using var originalImage = new Bitmap(fileStream);
+                    // Charger toutes les pages du TIFF multi-page
+                    LoadAllPreviewPages(tempTiffPath);
                     
-                    _currentPreviewImage?.Dispose();
+                    // Initialiser la navigation
+                    _currentPageIndex = 0;
+                    _totalPages = _allPreviewPages?.Count ?? 0;
+                    UpdatePageNavigation();
                     
-                    // Redimensionner l'image si elle est trop grande (optimisation mémoire)
-                    const int maxPreviewSize = 2048; // Limite à 2048 pixels pour l'aperçu
-                    if (originalImage.Width > maxPreviewSize || originalImage.Height > maxPreviewSize)
+                    // Afficher la première page
+                    if (_allPreviewPages != null && _allPreviewPages.Count > 0)
                     {
-                        var scale = Math.Min((float)maxPreviewSize / originalImage.Width, 
-                                           (float)maxPreviewSize / originalImage.Height);
-                        var newWidth = (int)(originalImage.Width * scale);
-                        var newHeight = (int)(originalImage.Height * scale);
-                        
-                        _logger.LogInfo("Preview", $"Redimensionnement de l'aperçu pour optimisation mémoire", 
-                            $"Original: {originalImage.Width}x{originalImage.Height}, Nouveau: {newWidth}x{newHeight}");
-                        
-                        _currentPreviewImage = new Bitmap(newWidth, newHeight);
-                        using var graphics = Graphics.FromImage(_currentPreviewImage);
-                        graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                        graphics.DrawImage(originalImage, 0, 0, newWidth, newHeight);
+                        DisplayCurrentPage();
                     }
-                    else
-                    {
-                        _currentPreviewImage = new Bitmap(originalImage);
-                    }
-                    
-                    // Réinitialiser pan et zoom
-                    _panOffset = PointF.Empty;
-                    _zoomFactor = _zoomTrackBar!.Value / 100.0f;
-                    
-                    // S'assurer que la PictureBox n'a pas d'image (on dessine manuellement)
-                    _previewPictureBox!.Image?.Dispose();
-                    _previewPictureBox.Image = null;
-                    
-                    // Redessiner avec le nouveau système
-                    _previewPictureBox.Invalidate();
-                    
-                    // Force le redraw pour s'assurer que l'aperçu s'affiche
-                    _previewPictureBox.Refresh();
-                    _previewPanel.Refresh();
                     
                     // Sauvegarder le cache pour éviter les régénérations inutiles
                     _lastPreviewFilePath = pdfPath;
                     _lastPreviewParameters = currentParameters;
                     
                     // Mise à jour du statut et des informations fichier
-                    UpdatePreviewStatus($"Aperçu optimisé: {Path.GetFileName(pdfPath)} → Paramètres personnalisés");
+                    UpdatePreviewStatus($"Aperçu optimisé: {Path.GetFileName(pdfPath)} → {_totalPages} page(s)");
                     
                     var fileSizeKB = fileInfo.Length / 1024.0;
                     var fileSizeMB = fileSizeKB / 1024.0;
@@ -2204,8 +2380,9 @@ public partial class MainForm : Form
                     
                     var parameters = GetCurrentConversionParameters();
                     var modeText = parameters.MonoPages ? "📄 Mode: Fichiers séparés par page" : "📑 Mode: Fichier multi-pages";
+                    var dimensions = _currentPreviewImage != null ? $"{_currentPreviewImage.Width}×{_currentPreviewImage.Height}px" : "N/A";
                     UpdateFileInfo($"📊 {parameters.Resolution} DPI • {parameters.Compression} • {parameters.BitDepth}\n" +
-                                  $"💾 {sizeText} • {activeProfile.Device.ToUpper()} • {_currentPreviewImage.Width}×{_currentPreviewImage.Height}px\n" +
+                                  $"💾 {sizeText} • {activeProfile.Device.ToUpper()} • {dimensions}\n" +
                                   $"{modeText} • ⚡ Aperçu mis en cache pour performances");
                     
                     // Reset du zoom
@@ -2266,6 +2443,21 @@ public partial class MainForm : Form
             
         _currentPreviewImage?.Dispose();
         _currentPreviewImage = null;
+        
+        // Nettoyer toutes les pages de navigation
+        if (_allPreviewPages != null)
+        {
+            foreach (var page in _allPreviewPages)
+            {
+                page?.Dispose();
+            }
+            _allPreviewPages = null;
+        }
+        
+        // Réinitialiser la navigation
+        _currentPageIndex = 0;
+        _totalPages = 0;
+        UpdatePageNavigation();
         
         UpdateFileInfo("");
         
