@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Converter.Cli")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c893a4d9a2d0f7bc0ec9c9585efc4c2d80849d56")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a4e56e5b4a54df3e94b7f5c08457b51dafc9da4a")]
 [assembly: System.Reflection.AssemblyProductAttribute("Converter.Cli")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Converter.Cli")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
