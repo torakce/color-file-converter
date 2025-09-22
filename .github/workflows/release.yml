@@ -1,0 +1,69 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Déclenche sur les tags version (v1.0.0, v2.1.0, etc.)
+
+permissions:
+  contents: write  # Nécessaire pour créer des releases
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+        
+    - name: Build Simple Working Version
+      run: |
+        dotnet publish Converter.Gui --configuration Release --runtime win-x64 --self-contained true --output Release/SimpleWorking /p:PublishSingleFile=false /p:PublishTrimmed=false
+        
+    - name: Package Release
+      run: |
+        Compress-Archive -Path "Release/SimpleWorking/*" -DestinationPath "ColorFileConverter-${{ github.ref_name }}.zip"
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Color File Converter ${{ github.ref_name }}
+        body: |
+          ## 🎉 Color File Converter ${{ github.ref_name }}
+          
+          ### 📥 Téléchargement :
+          
+          **ColorFileConverter-${{ github.ref_name }}.zip** (~194 MB)
+          
+          ### ✨ Fonctionnalités :
+          - ✅ **Conversion PDF → TIFF** (mono-page et multi-page)  
+          - ✅ **Aperçu avec navigation par pages** (◀ ▶)
+          - ✅ **Interface intuitive** avec zoom et pan
+          - ✅ **Profils personnalisables** pour différents besoins
+          - ✅ **Mode portable** - aucune installation requise
+          - ✅ **Structure propre** - exe facilement accessible
+          
+          ### 🚀 Installation :
+          1. **Télécharger** le fichier ZIP
+          2. **Extraire** dans un dossier
+          3. **Double-cliquer** sur `Converter.Gui.exe` (visible à la racine!)
+          4. **C'est tout !** - Pas besoin de chercher dans des sous-dossiers
+          
+          ### 📂 Structure :
+          ```
+          ColorFileConverter/
+          ├── Converter.Gui.exe     ← Lancez directement ce fichier !
+          ├── README.txt           
+          └── Runtime/             ← Toutes les dépendances
+              ├── *.dll
+              └── Ghostscript/
+          ```
+          
+        files: |
+          ColorFileConverter-${{ github.ref_name }}.zip
+        draft: false
+        prerelease: false

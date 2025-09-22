@@ -1,0 +1,149 @@
+GUIDE DE DÉPLOIEMENT RÉSEAU - Color File Converter Portable
+===========================================================
+
+🎯 OBJECTIF
+Déployer Color File Converter en version portable sur un réseau d'entreprise
+sans nécessiter d'installation sur les postes clients.
+
+📋 PRÉ-REQUIS ADMINISTRATEUR
+• Accès administrateur au serveur de fichiers
+• Droits de partage réseau
+• Les postes clients doivent être Windows 64-bit (10 ou 11)
+
+🚀 ÉTAPES DE DÉPLOIEMENT
+
+1. PRÉPARATION DU SERVEUR
+   • Créez un dossier sur votre serveur : \\serveur\Applications\ColorConverter\
+   • Copiez TOUT le contenu du dossier "Release\Portable\App" dans ce répertoire
+   • Vérifiez que les fichiers suivants sont présents :
+     - Converter.Gui.exe (application principale)
+     - Ghostscript\ (dossier avec binaires)
+     - README.txt (documentation utilisateur)
+
+2. CONFIGURATION DES PERMISSIONS
+   • Partagez le dossier en lecture seule pour "Tous les utilisateurs"
+   • Permissions recommandées :
+     - Domaine\Utilisateurs : Lecture & Exécution
+     - Domaine\Admins : Contrôle total
+   • Testez l'accès depuis un poste client
+
+3. CRÉATION D'UN RACCOURCI (OPTIONNEL)
+   • Créez un raccourci vers \\serveur\Applications\ColorConverter\Converter.Gui.exe
+   • Placez ce raccourci sur le bureau ou dans le menu Démarrer des utilisateurs
+   • Nom suggéré : "Color File Converter"
+   • Icône : Utiliser l'icône de l'exe
+
+4. DÉPLOIEMENT PAR GPO (OPTIONNEL)
+   Si vous utilisez Active Directory :
+   • Computer Configuration → Policies → Windows Settings → Scripts → Startup
+   • Créez un script qui copie le raccourci sur le bureau
+   • Ou utilisez les préférences GPO pour créer automatiquement le raccourci
+
+🔧 CONFIGURATION AVANCÉE
+
+VARIABLES D'ENVIRONNEMENT (si nécessaire)
+Si Ghostscript ne fonctionne pas correctement :
+• Définissez GHOSTSCRIPT_EXE=\\serveur\Applications\ColorConverter\Ghostscript\gswin64c.exe
+• Via GPO : Computer Config → Preferences → Windows Settings → Environment
+
+ANTIVIRUS
+Ajoutez ces exclusions si nécessaire :
+• \\serveur\Applications\ColorConverter\Converter.Gui.exe
+• \\serveur\Applications\ColorConverter\Ghostscript\*.exe
+
+PARE-FEU
+Aucune configuration spéciale requise (pas de communication réseau)
+
+📊 MONITORING ET MAINTENANCE
+
+SURVEILLANCE
+• Vérifiez périodiquement l'accès au partage
+• Surveillez les logs Windows Event Viewer pour erreurs d'accès
+• Testez occasionnellement depuis un poste utilisateur
+
+MISE À JOUR
+1. Téléchargez la nouvelle version portable
+2. Remplacez le contenu du dossier serveur
+3. Informez les utilisateurs de fermer/relancer l'application
+4. Aucune action requise côté poste client
+
+SAUVEGARDE
+• Incluez \\serveur\Applications\ColorConverter\ dans vos sauvegardes
+• La configuration utilisateur est dans %APPDATA% de chaque user
+
+🚨 RÉSOLUTION DES PROBLÈMES COURANTS
+
+PROBLÈME : "Accès refusé"
+SOLUTION : Vérifiez les permissions du partage et NTFS
+
+PROBLÈME : "Application ne se lance pas"
+SOLUTION : 
+- Vérifiez que le poste est Windows 64-bit
+- Testez en tant qu'administrateur local
+- Vérifiez l'antivirus
+
+PROBLÈME : "Ghostscript introuvable"
+SOLUTION :
+- Vérifiez que le dossier Ghostscript\ est complet
+- Définissez la variable GHOSTSCRIPT_EXE
+- Testez depuis le serveur directement
+
+PROBLÈME : Performances lentes
+SOLUTION :
+- Vérifiez la bande passante réseau
+- Considérez une installation locale pour les utilisateurs intensifs
+- Optimisez les paramètres de conversion (résolution plus basse)
+
+📞 SUPPORT TECHNIQUE
+
+LOGS UTILISATEUR
+• Les utilisateurs peuvent accéder aux logs via Menu → Voir les logs
+• Logs sauvegardés dans %APPDATA%\ColorConverter\converter.log
+
+DIAGNOSTIC RÉSEAU
+• Testez avec : \\serveur\Applications\ColorConverter\Converter.Gui.exe
+• Vérifiez la connectivité : ping serveur
+• Testez les permissions : dir \\serveur\Applications\
+
+ESCALADE
+• Contactez l'équipe de développement avec :
+  - Version Windows des postes clients
+  - Configuration réseau (domaine/workgroup)  
+  - Messages d'erreur exacts
+  - Logs application si disponibles
+
+✅ CHECKLIST DE VALIDATION
+
+□ Application se lance depuis le serveur
+□ Conversion PDF→TIFF fonctionne
+□ Aperçu s'affiche correctement
+□ Sauvegarde dans dossier local possible
+□ Plusieurs utilisateurs simultanés OK
+□ Pas d'erreur dans Event Viewer
+□ Antivirus n'interfère pas
+□ Raccourci bureau créé (si souhaité)
+
+🏆 AVANTAGES DE CETTE SOLUTION
+
+POUR L'IT
+• Pas d'installation sur chaque poste
+• Mise à jour centralisée
+• Pas de conflit logiciel
+• Audit et contrôle simplifiés
+
+POUR LES UTILISATEURS  
+• Accès immédiat sans attendre l'IT
+• Pas de demande de droits admin
+• Interface familière Windows
+• Conversion rapide et fiable
+
+POUR L'ENTREPRISE
+• Réduction des coûts de déploiement
+• Amélioration de la productivité
+• Standardisation des outils PDF
+• Pas de licence par poste
+
+═══════════════════════════════════════════════════════════
+Guide préparé pour l'administrateur système
+Version compatible Active Directory et environnements mixtes
+═══════════════════════════════════════════════════════════
