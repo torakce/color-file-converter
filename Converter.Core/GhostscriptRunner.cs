@@ -188,12 +188,12 @@ public static class GhostscriptRunner
                 "g3" => "-sCompression=g3",
                 "g4" => "-sCompression=g4",
                 "jpeg" => "-sCompression=jpeg",
-                "none" => "-sCompression=none",
+                "none" or "null" => null, // No compression parameter
                 _ => $"-sCompression={compression}"
             };
         }
         
         // For other devices, use the compression as-is
-        return $"-sCompression={compression}";
+        return string.IsNullOrWhiteSpace(compression) ? null : $"-sCompression={compression}";
     }
 }

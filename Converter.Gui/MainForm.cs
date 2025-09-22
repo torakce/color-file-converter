@@ -836,7 +836,7 @@ public partial class MainForm : Form
             parameters.Compression = _compressionCombo.SelectedItem.ToString() ?? "LZW (sans perte)";
         
         if (_bitDepthCombo?.SelectedItem != null)
-            parameters.BitDepth = _bitDepthCombo.SelectedItem.ToString() ?? "24 bits (16M couleurs)";
+            parameters.BitDepth = _bitDepthCombo.SelectedItem.ToString() ?? "Couleurs (24 bits)";
         
         // Lissage fixe à valeur par défaut optimale
         parameters.Smoothing = "Normal (4x)";
@@ -1766,7 +1766,7 @@ public partial class MainForm : Form
                 {
                     _resolutionCombo.Text = "150";
                     _compressionCombo.SelectedItem = "LZW (sans perte)";
-                    _bitDepthCombo.SelectedItem = "8 bits (256 niveaux)";
+                    _bitDepthCombo.SelectedItem = "Niveaux de gris (8 bits)";
                 }
                 break;
             case DialogResult.Ignore:
