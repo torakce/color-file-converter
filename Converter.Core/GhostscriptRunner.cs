@@ -142,7 +142,12 @@ public static class GhostscriptRunner
     {
         // 1) Variable env explicite
         var fromEnv = Environment.GetEnvironmentVariable("GHOSTSCRIPT_EXE");
-        if (!string.IsNullOrWhiteSpace(fromEnv)) return fromEnv;
+        if (!string.IsNullOrWhiteSpace(fromEnv))
+        {
+            if (File.Exists(fromEnv))
+                return fromEnv;
+            throw new FileNotFoundException($"Ghostscript introuvable à l'emplacement spécifié par GHOSTSCRIPT_EXE : {fromEnv}");
+        }
 
         // 2) Dossier local "Ghostscript" à côté de l'exécutable
         string baseDirectory = AppContext.BaseDirectory;
@@ -164,9 +169,54 @@ public static class GhostscriptRunner
         }
 
         // 3) Nom “classique” selon l’OS (nécessite que PATH soit OK)
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return "gswin64c"; // ou gswin32c selon install
-        return "gs"; // macOS / Linux
+        // 3) Vérifier si Ghostscript est disponible dans le PATH
+        var pathCandidates = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? new[] { "gswin64c", "gswin32c" }
+            : new[] { "gs" };
+
+        foreach (var candidate in pathCandidates)
+        {
+            if (IsExecutableInPath(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        // Si aucun Ghostscript trouvé, lancer une exception avec des instructions claires
+        var instructions = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? "Pour résoudre ce problème :\n" +
+              "1. Téléchargez Ghostscript depuis https://ghostscript.com/releases/index.html\n" +
+              "2. Installez-le sur votre système, OU\n" +
+              "3. Copiez les fichiers Ghostscript dans un dossier 'Ghostscript' à côté de l'exécutable, OU\n" +
+              "4. Définissez la variable d'environnement GHOSTSCRIPT_EXE vers l'exécutable Ghostscript"
+            : "Pour résoudre ce problème :\n" +
+              "1. Installez Ghostscript avec votre gestionnaire de paquets (ex: apt install ghostscript), OU\n" +
+              "2. Copiez l'exécutable 'gs' dans un dossier 'Ghostscript' à côté de l'exécutable, OU\n" +
+              "3. Définissez la variable d'environnement GHOSTSCRIPT_EXE vers l'exécutable Ghostscript";
+
+        throw new FileNotFoundException($"Ghostscript introuvable sur ce système.\n\n{instructions}");
     }
 
     static string Quote(string s) => s.Contains(' ') ? $"\"{s}\"" : s;
+
+    static bool IsExecutableInPath(string executableName)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo(executableName, "-version")
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            using var process = new Process { StartInfo = psi };
+            return process.Start();
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }
