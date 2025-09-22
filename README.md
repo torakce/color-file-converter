@@ -60,11 +60,14 @@ Activez l’ouverture automatique via la case **Afficher le journal détaillé**
 
 ## Utilisation sans installation de Ghostscript
 
+**⚡ Releases pré-intégrées**: Les versions compilées incluent automatiquement Ghostscript - aucune installation manuelle nécessaire !
 Le programme cherche Ghostscript dans l’ordre suivant :
 
 1. Variable d’environnement `GHOSTSCRIPT_EXE`
 2. Dossier `Ghostscript` situé à côté de l’exécutable (`Converter.Gui.exe`)
 3. Exécutable présent dans le `PATH` (`gswin64c`, `gswin32c`, `gs`…)
+
+### Installation manuelle (si nécessaire)
 
 Pour un poste Windows sans installation Ghostscript :
 
@@ -98,3 +101,11 @@ Sur macOS/Linux, créez également un dossier `Ghostscript` contenant l’exécu
 
 - Les profils et paramètres utilisateurs sont enregistrés sous `%AppData%\ColorFileConverter`.
 - Le projet cible .NET 8 et utilise Windows Forms.
+
+### Création de releases
+
+**⚠️ Prérequis obligatoire**: Ghostscript doit être installé sur la machine de build pour créer des releases autonomes.
+
+Les scripts de build (`Build-Simple.ps1`, `Build-Portable-Light.ps1`) intègrent automatiquement Ghostscript dans les releases pour garantir qu'elles fonctionnent sans installation supplémentaire pour l'utilisateur final.
+
+Si Ghostscript n'est pas trouvé lors du build, le processus s'arrête avec des instructions claires pour l'installer.

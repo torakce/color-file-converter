@@ -165,6 +165,13 @@ if ($GhostscriptSource) {
         if (Test-Path $sourcePath) {
             Copy-Item $sourcePath -Destination $destPath -Force
             Write-Host "  Copie essentiel: $fileName" -ForegroundColor Cyan
+        } else {
+            Write-Host "  ERREUR - Fichier manquant: $fileName" -ForegroundColor Red
+            Write-Host "  Chemin recherché: $sourcePath" -ForegroundColor Red
+            Write-Host ""
+            Write-Host "Installation Ghostscript incomplète détectée!" -ForegroundColor Red
+            Write-Host "Réinstallez Ghostscript complètement depuis https://ghostscript.com/releases/index.html" -ForegroundColor Yellow
+            exit 1
         }
     }
     
@@ -197,7 +204,19 @@ if ($GhostscriptSource) {
     
     Write-Host "Ghostscript MINIMAL integre!" -ForegroundColor Green
 } else {
-    Write-Host "Ghostscript non trouve" -ForegroundColor Yellow
+    Write-Host "ERREUR: Ghostscript est REQUIS pour créer une release complète!" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Solutions:" -ForegroundColor Yellow  
+    Write-Host "1. Installez Ghostscript depuis https://ghostscript.com/releases/index.html" -ForegroundColor White
+    Write-Host "2. Vérifiez que gswin64c.exe est accessible dans le PATH" -ForegroundColor White
+    Write-Host "3. Ou installez-le dans C:\Program Files\gs\" -ForegroundColor White
+    Write-Host ""
+    Write-Host "Une release sans Ghostscript intégré obligerait les utilisateurs" -ForegroundColor Red
+    Write-Host "à installer Ghostscript eux-mêmes, ce qui va à l'encontre de" -ForegroundColor Red  
+    Write-Host "l'objectif d'une version portable autonome." -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Build interrompu. Installez Ghostscript et relancez." -ForegroundColor Red
+    exit 1
 }
 
 # Documentation
@@ -249,7 +268,16 @@ if (Test-Path $OutputDir) {
 
 $gsDir = Join-Path $RuntimeDir "Ghostscript"
 $hasGs = Test-Path $gsDir
-Write-Host "Ghostscript: $(if($hasGs) { 'Minimal inclus' } else { 'Non inclus' })" -ForegroundColor White
+$gsExe = Join-Path $gsDir "gswin64c.exe"
+$hasGsExe = Test-Path $gsExe
+
+if ($hasGs -and $hasGsExe) {
+    Write-Host "Ghostscript: ✅ Correctement intégré" -ForegroundColor Green
+} else {
+    Write-Host "Ghostscript: ❌ MANQUANT - Build échoué!" -ForegroundColor Red
+    Write-Host "La release n'est pas autonome sans Ghostscript intégré." -ForegroundColor Red
+    exit 1
+}
 
 Write-Host ""
 Write-Host "STRUCTURE APPLIQUEE:" -ForegroundColor Yellow

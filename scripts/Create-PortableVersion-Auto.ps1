@@ -66,7 +66,14 @@ function Find-GhostscriptInstallation {
         }
     }
     
-    Write-Host "  Ghostscript non trouvé automatiquement" -ForegroundColor Red
+    Write-Host "  ERREUR: Ghostscript est REQUIS!" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Solutions:" -ForegroundColor Yellow  
+    Write-Host "1. Installez Ghostscript depuis https://ghostscript.com/releases/index.html" -ForegroundColor White
+    Write-Host "2. Vérifiez que gswin64c.exe est accessible dans le PATH" -ForegroundColor White
+    Write-Host "3. Ou installez-le dans C:\Program Files\gs\" -ForegroundColor White
+    Write-Host ""
+    Write-Host "Build interrompu - Ghostscript requis pour une release autonome." -ForegroundColor Red
     return $null
 }
 
@@ -167,8 +174,19 @@ if (!$NoGhostscript) {
         Write-Host "✓ Ghostscript intégré avec succès!" -ForegroundColor Green
     } else {
         Write-Host ""
-        Write-Host "⚠️  Ghostscript non trouvé ou incomplet" -ForegroundColor Yellow
-        Write-Host "La version portable fonctionnera mais nécessitera Ghostscript installé sur les postes cibles." -ForegroundColor Yellow
+        Write-Host "ERREUR: Ghostscript est REQUIS pour créer une release complète!" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "Solutions:" -ForegroundColor Yellow  
+        Write-Host "1. Installez Ghostscript depuis https://ghostscript.com/releases/index.html" -ForegroundColor White
+        Write-Host "2. Vérifiez que gswin64c.exe est accessible dans le PATH" -ForegroundColor White
+        Write-Host "3. Ou installez-le dans C:\Program Files\gs\" -ForegroundColor White
+        Write-Host ""
+        Write-Host "Une release sans Ghostscript intégré obligerait les utilisateurs" -ForegroundColor Red
+        Write-Host "à installer Ghostscript eux-mêmes, ce qui va à l'encontre de" -ForegroundColor Red  
+        Write-Host "l'objectif d'une version portable autonome." -ForegroundColor Red
+        Write-Host ""
+        Write-Host "Build interrompu. Installez Ghostscript et relancez." -ForegroundColor Red
+        exit 1
     }
 } else {
     Write-Host "Ghostscript ignoré (paramètre -NoGhostscript)" -ForegroundColor Yellow
