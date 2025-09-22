@@ -1,0 +1,158 @@
+name: Build and Release with Ghostscript
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-with-ghostscript:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+        
+    - name: Build Application
+      run: dotnet publish Converter.Gui --configuration Release --runtime win-x64 --self-contained true --output Release/SimpleWorking /p:PublishSingleFile=false /p:PublishTrimmed=false
+        
+    - name: Download and Setup Ghostscript
+      run: |
+        Write-Host "Téléchargement de Ghostscript..." -ForegroundColor Yellow
+        
+        # Télécharger Ghostscript (version GPL officielle)
+        $gsUrl = "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10031/gs10031w64.exe"
+        $gsInstaller = "gs_installer.exe"
+        
+        try {
+          Invoke-WebRequest -Uri $gsUrl -OutFile $gsInstaller -UseBasicParsing
+          Write-Host "Ghostscript téléchargé avec succès" -ForegroundColor Green
+        } catch {
+          Write-Error "Erreur lors du téléchargement: $_"
+          exit 1
+        }
+        
+        # Extraction avec installation portable
+        Write-Host "Extraction de Ghostscript..." -ForegroundColor Yellow
+        $gsTemp = "gs_temp"
+        
+        # Installation en mode silencieux dans un dossier temporaire
+        $installPath = "$(Get-Location)\$gsTemp"
+        Start-Process -FilePath $gsInstaller -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/DIR=$installPath" -Wait -NoNewWindow
+        
+        # Créer le dossier Ghostscript dans la release
+        Write-Host "Installation dans la release..." -ForegroundColor Yellow
+        $gsTarget = "Release/SimpleWorking/Ghostscript"
+        New-Item -ItemType Directory -Path $gsTarget -Force
+        
+        # Copier les fichiers essentiels
+        $gsBin = "$gsTemp/bin"
+        if (Test-Path $gsBin) {
+          # Copier l'exécutable principal
+          Copy-Item "$gsBin/gswin64c.exe" "$gsTarget/" -Force -ErrorAction Stop
+          
+          # Copier les DLLs importantes
+          $essentialDlls = @(
+            "gsdll64.dll",
+            "gsdll64.lib"
+          )
+          
+          foreach ($dll in $essentialDlls) {
+            $dllPath = "$gsBin/$dll"
+            if (Test-Path $dllPath) {
+              Copy-Item $dllPath "$gsTarget/" -Force
+            }
+          }
+          
+          # Copier les ressources si elles existent
+          $gsResource = "$gsTemp/Resource"
+          if (Test-Path $gsResource) {
+            Copy-Item $gsResource "$gsTarget/" -Recurse -Force -ErrorAction SilentlyContinue
+          }
+          
+          Write-Host "Ghostscript installé avec succès dans la release" -ForegroundColor Green
+        } else {
+          Write-Warning "Dossier bin de Ghostscript introuvable"
+        }
+        
+        # Nettoyage
+        Remove-Item $gsInstaller -Force -ErrorAction SilentlyContinue
+        Remove-Item $gsTemp -Recurse -Force -ErrorAction SilentlyContinue
+        
+        # Vérification finale
+        $gsExe = "$gsTarget/gswin64c.exe"
+        if (Test-Path $gsExe) {
+          $size = (Get-Item $gsExe).Length / 1MB
+          Write-Host "✅ Ghostscript inclus: $([math]::Round($size, 1)) MB" -ForegroundColor Green
+        } else {
+          Write-Error "❌ Ghostscript non trouvé après installation"
+          exit 1
+        }
+        
+    - name: Package Release
+      run: |
+        Write-Host "Création du package..." -ForegroundColor Yellow
+        Compress-Archive -Path "Release/SimpleWorking/*" -DestinationPath "ColorFileConverter-${{ github.ref_name }}-with-Ghostscript.zip"
+        
+        # Afficher les détails du package
+        $zipInfo = Get-Item "ColorFileConverter-${{ github.ref_name }}-with-Ghostscript.zip"
+        $sizeMB = [math]::Round($zipInfo.Length / 1MB, 1)
+        Write-Host "✅ Package créé: $sizeMB MB" -ForegroundColor Green
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Color File Converter ${{ github.ref_name }} (avec Ghostscript)
+        body: |
+          ## 🎉 Color File Converter ${{ github.ref_name }}
+          
+          ### 🆕 NOUVEAUTÉ : Ghostscript inclus !
+          Cette version inclut **Ghostscript portable** - plus besoin d'installation séparée !
+          
+          ### 📥 Téléchargement
+          
+          **ColorFileConverter-${{ github.ref_name }}-with-Ghostscript.zip** (~220 MB)
+          
+          ### ✨ Fonctionnalités
+          - ✅ **Conversion PDF → TIFF** (mono-page et multi-page)  
+          - ✅ **Aperçu avec navigation** par pages (◀ ▶)
+          - ✅ **Interface intuitive** avec zoom et pan
+          - ✅ **Profils personnalisables** pour différents besoins
+          - ✅ **Mode portable complet** - aucune installation requise
+          - ✅ **Ghostscript inclus** - fonctionne sur tous les PC !
+          - ✅ **Détection automatique** - aucune configuration manuelle
+          
+          ### 🚀 Installation
+          1. **Télécharger** le fichier ZIP
+          2. **Extraire** dans un dossier
+          3. **Double-cliquer** sur `Converter.Gui.exe`
+          4. **C'est tout !** - Ghostscript est automatiquement détecté
+          
+          ### 📂 Structure
+          ```
+          ColorFileConverter/
+          ├── Converter.Gui.exe     ← Lancez directement !
+          ├── *.dll                ← Dépendances .NET
+          └── Ghostscript/         ← Ghostscript portable
+              ├── gswin64c.exe
+              ├── gsdll64.dll
+              └── Resource/
+          ```
+          
+          ### 🔧 Compatible avec
+          - Windows 10/11 (64-bit)
+          - PC avec ou sans Ghostscript installé
+          - Aucune installation .NET requise
+          
+        files: ColorFileConverter-${{ github.ref_name }}-with-Ghostscript.zip
+        draft: false
+        prerelease: false
