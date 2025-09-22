@@ -541,8 +541,8 @@ public partial class MainForm : Form
             "• JPEG: Petits fichiers mais perte de qualité\n" +
             "• Aucune: Qualité max, fichiers très gros");
 
-        // Bit depth / Profondeur
-        var bitDepthLabel = new Label { Text = "Profondeur:", AutoSize = true, TextAlign = ContentAlignment.MiddleLeft };
+        // Bit depth / Couleurs
+        var bitDepthLabel = new Label { Text = "Couleurs:", AutoSize = true, TextAlign = ContentAlignment.MiddleLeft };
         paramsLayout.Controls.Add(bitDepthLabel, 4, 0);
         
         _bitDepthCombo = new ComboBox
@@ -552,18 +552,18 @@ public partial class MainForm : Form
             DropDownStyle = ComboBoxStyle.DropDownList,
             Margin = new Padding(3)
         };
-        _bitDepthCombo.Items.AddRange(new[] { "1 bit (N&B)", "8 bits (256 niveaux)", "24 bits (16M couleurs)" });
-        _bitDepthCombo.SelectedIndex = 2; // 24 bits par défaut
+        _bitDepthCombo.Items.AddRange(new[] { "Noir & Blanc (1bit)", "Niveaux de gris (8 bits)", "Couleurs (24 bits)" });
+        _bitDepthCombo.SelectedIndex = 2; // Couleurs (24 bits) par défaut
         _bitDepthCombo.SelectedIndexChanged += ParameterChanged;
         paramsLayout.Controls.Add(_bitDepthCombo, 5, 0);
         
-        // Tooltip pour la profondeur
+        // Tooltip pour les couleurs
         var toolTip3 = new ToolTip();
         toolTip3.SetToolTip(_bitDepthCombo,
-            "Profondeur de couleur\n" +
-            "• 1 bit: Noir & Blanc seulement (G3/G4 obligatoire)\n" +
-            "• 8 bits: Niveaux de gris (256 nuances)\n" +
-            "• 24 bits: Couleurs complètes (16M couleurs)\n" +
+            "Type de couleurs\n" +
+            "• Noir & Blanc: Seulement 2 couleurs (G3/G4 obligatoire)\n" +
+            "• Niveaux de gris: 256 nuances de gris\n" +
+            "• Couleurs: Couleurs complètes (16M couleurs)\n" +
             "Plus élevé = plus de détails mais fichiers plus gros");
 
         // Lissage supprimé - utilisation d'une valeur par défaut dans la logique
@@ -591,7 +591,10 @@ public partial class MainForm : Form
 
         // Ajouter les validations pour les compressions incompatibles
         _compressionCombo.SelectedIndexChanged += ValidateCompressionCompatibility;
-        _bitDepthCombo.SelectedIndexChanged += ValidateCompressionCompatibility;
+        _bitDepthCombo.SelectedIndexChanged += OnBitDepthChanged;
+        
+        // Initialiser les options de compression selon la sélection par défaut
+        UpdateCompressionOptions();
     }
 
     // Structure pour les paramètres de conversion
@@ -599,7 +602,7 @@ public partial class MainForm : Form
     {
         public int Resolution { get; set; } = 300;
         public string Compression { get; set; } = "LZW (sans perte)";
-        public string BitDepth { get; set; } = "24 bits (16M couleurs)";
+        public string BitDepth { get; set; } = "Couleurs (24 bits)";
         public string Smoothing { get; set; } = "Normal (4x)";
         public bool MonoPages { get; set; } = false;
     }
@@ -614,6 +617,89 @@ public partial class MainForm : Form
         RefreshPreview();
     }
     
+    private void OnBitDepthChanged(object? sender, EventArgs e)
+    {
+        UpdateCompressionOptions();
+        ValidateCompressionCompatibility(sender, e);
+    }
+
+    private void UpdateCompressionOptions()
+    {
+        if (_bitDepthCombo == null || _compressionCombo == null) return;
+
+        var selectedBitDepth = _bitDepthCombo.SelectedItem?.ToString();
+        var currentCompression = _compressionCombo.SelectedItem?.ToString();
+
+        // Sauvegarder la sélection actuelle si possible
+        _compressionCombo.SelectedIndexChanged -= ValidateCompressionCompatibility;
+
+        try
+        {
+            _compressionCombo.Items.Clear();
+
+            if (selectedBitDepth == "Noir & Blanc (1bit)")
+            {
+                // Pour le noir et blanc, seules certaines compressions sont appropriées
+                _compressionCombo.Items.AddRange(new[] { 
+                    "Aucune (non compressé)",
+                    "G3 (Fax, N&B uniquement)",
+                    "G4 (Fax, N&B uniquement)",
+                    "LZW (sans perte)",
+                    "ZIP/Deflate (sans perte)", 
+                    "PackBits (sans perte)"
+                });
+                
+                // Sélectionner G4 par défaut pour le noir et blanc
+                if (_compressionCombo.Items.Contains("G4 (Fax, N&B uniquement)"))
+                    _compressionCombo.SelectedItem = "G4 (Fax, N&B uniquement)";
+                else
+                    _compressionCombo.SelectedIndex = 0;
+            }
+            else if (selectedBitDepth == "Niveaux de gris (8 bits)")
+            {
+                // Pour les niveaux de gris
+                _compressionCombo.Items.AddRange(new[] { 
+                    "Aucune (non compressé)",
+                    "LZW (sans perte)",
+                    "ZIP/Deflate (sans perte)", 
+                    "PackBits (sans perte)",
+                    "JPEG (avec perte, couleur/gris)"
+                });
+                
+                // Essayer de conserver la sélection précédente si compatible
+                if (currentCompression != null && _compressionCombo.Items.Contains(currentCompression))
+                    _compressionCombo.SelectedItem = currentCompression;
+                else if (_compressionCombo.Items.Contains("LZW (sans perte)"))
+                    _compressionCombo.SelectedItem = "LZW (sans perte)";
+                else
+                    _compressionCombo.SelectedIndex = 0;
+            }
+            else if (selectedBitDepth == "Couleurs (24 bits)")
+            {
+                // Pour les couleurs
+                _compressionCombo.Items.AddRange(new[] { 
+                    "Aucune (non compressé)",
+                    "LZW (sans perte)",
+                    "ZIP/Deflate (sans perte)", 
+                    "PackBits (sans perte)",
+                    "JPEG (avec perte, couleur/gris)"
+                });
+                
+                // Essayer de conserver la sélection précédente si compatible
+                if (currentCompression != null && _compressionCombo.Items.Contains(currentCompression))
+                    _compressionCombo.SelectedItem = currentCompression;
+                else if (_compressionCombo.Items.Contains("LZW (sans perte)"))
+                    _compressionCombo.SelectedItem = "LZW (sans perte)";
+                else
+                    _compressionCombo.SelectedIndex = 0;
+            }
+        }
+        finally
+        {
+            _compressionCombo.SelectedIndexChanged += ValidateCompressionCompatibility;
+        }
+    }
+
     private void ValidateCompressionCompatibility(object? sender, EventArgs e)
     {
         var parameters = GetCurrentConversionParameters();
@@ -624,19 +710,19 @@ public partial class MainForm : Form
         
         // Vérifier les incompatibilités et afficher des avertissements discrets
         if ((parameters.Compression.Contains("G3") || parameters.Compression.Contains("G4")) 
-            && !parameters.BitDepth.Contains("1 bit"))
+            && !parameters.BitDepth.Contains("Noir & Blanc"))
         {
             // Afficher un avertissement visuel sans bloquer
-            _validationWarningLabel.Text = "⚠️ G3/G4 nécessite 1 bit (N&B). Correction automatique appliquée.";
+            _validationWarningLabel.Text = "⚠️ G3/G4 nécessite Noir & Blanc. Correction automatique appliquée.";
             _validationWarningLabel.Visible = true;
             
-            // Changer automatiquement vers 1 bit (sans MessageBox intrusif)
-            SetBitDepth("1 bit (N&B)");
+            // Changer automatiquement vers Noir & Blanc (sans MessageBox intrusif)
+            SetBitDepth("Noir & Blanc (1bit)");
         }
-        else if (parameters.Compression.Contains("JPEG") && parameters.BitDepth.Contains("1 bit"))
+        else if (parameters.Compression.Contains("JPEG") && parameters.BitDepth.Contains("Noir & Blanc"))
         {
             // Nouveau : Avertissement pour JPEG avec monochrome
-            _validationWarningLabel.Text = "💡 Conseil: JPEG fonctionne mieux avec 8 ou 24 bits pour de meilleurs résultats.";
+            _validationWarningLabel.Text = "💡 Conseil: JPEG fonctionne mieux avec Niveaux de gris ou Couleurs pour de meilleurs résultats.";
             _validationWarningLabel.ForeColor = Color.DarkBlue;
             _validationWarningLabel.Visible = true;
         }
@@ -775,9 +861,9 @@ public partial class MainForm : Form
         // Convertir les paramètres en device GhostScript approprié
         return parameters.BitDepth switch
         {
-            "1 bit (N&B)" => "tiffg4", // Toujours G4 pour le monochrome
-            "8 bits (256 niveaux)" => "tiffgray",
-            "24 bits (16M couleurs)" => "tiff24nc",
+            "Noir & Blanc (1bit)" => "tiffg4", // Toujours G4 pour le monochrome
+            "Niveaux de gris (8 bits)" => "tiffgray",
+            "Couleurs (24 bits)" => "tiff24nc",
             _ => "tiff24nc"
         };
     }
@@ -1421,10 +1507,10 @@ public partial class MainForm : Form
     {
         return device.ToLower() switch
         {
-            var d when d.Contains("g4") || d.Contains("g3") || d.Contains("mono") => "1 bit (N&B)",
-            var d when d.Contains("gray") => "8 bits (256 niveaux)",
-            var d when d.Contains("24") || d.Contains("color") => "24 bits (16M couleurs)",
-            _ => "24 bits (16M couleurs)"
+            var d when d.Contains("g4") || d.Contains("g3") || d.Contains("mono") => "Noir & Blanc (1bit)",
+            var d when d.Contains("gray") => "Niveaux de gris (8 bits)",
+            var d when d.Contains("24") || d.Contains("color") => "Couleurs (24 bits)",
+            _ => "Couleurs (24 bits)"
         };
     }
 

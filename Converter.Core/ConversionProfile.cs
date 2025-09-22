@@ -14,22 +14,22 @@ public sealed record ConversionProfile(
     public static IReadOnlyList<ConversionProfile> GetDefaultProfiles() => new[]
     {
         new ConversionProfile(
-            "Fax monochrome",
+            "Fax G4",
             "tiffg4",
-            null,
-            200,
+            "g4",
+            150,
             Array.Empty<string>()),
         new ConversionProfile(
-            "TIFF bureau (300 dpi, niveaux de gris)",
+            "Niveaux de gris",
             "tiffgray",
             "lzw",
-            300,
+            150,
             Array.Empty<string>()),
         new ConversionProfile(
-            "TIFF couleur haute qualité",
+            "Couleurs",
             "tiff24nc",
             "lzw",
-            300,
+            150,
             Array.Empty<string>())
     };
 

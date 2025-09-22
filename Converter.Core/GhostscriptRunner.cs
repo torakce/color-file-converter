@@ -46,7 +46,12 @@ public static class GhostscriptRunner
 
         if (!string.IsNullOrWhiteSpace(compression))
         {
-            args.Add($"-sCompression={compression}");
+            // Handle different compression types properly for TIFF
+            var compressionParam = GetCompressionParameter(compression, device);
+            if (!string.IsNullOrWhiteSpace(compressionParam))
+            {
+                args.Add(compressionParam);
+            }
         }
 
         if (extraParameters is not null)
@@ -169,4 +174,26 @@ public static class GhostscriptRunner
     }
 
     static string Quote(string s) => s.Contains(' ') ? $"\"{s}\"" : s;
+
+    static string? GetCompressionParameter(string compression, string device)
+    {
+        // For TIFF devices, some compressions need special handling
+        if (device.StartsWith("tiff", StringComparison.OrdinalIgnoreCase))
+        {
+            return compression.ToLower() switch
+            {
+                "lzw" => "-sCompression=lzw",
+                "zip" => "-sCompression=zip", // Also known as deflate
+                "packbits" => "-sCompression=packbits",
+                "g3" => "-sCompression=g3",
+                "g4" => "-sCompression=g4",
+                "jpeg" => "-sCompression=jpeg",
+                "none" => "-sCompression=none",
+                _ => $"-sCompression={compression}"
+            };
+        }
+        
+        // For other devices, use the compression as-is
+        return $"-sCompression={compression}";
+    }
 }
