@@ -46,7 +46,12 @@ public static class GhostscriptRunner
 
         if (!string.IsNullOrWhiteSpace(compression))
         {
-            args.Add($"-sCompression={compression}");
+            // Handle different compression types properly for TIFF
+            var compressionParam = GetCompressionParameter(compression, device);
+            if (!string.IsNullOrWhiteSpace(compressionParam))
+            {
+                args.Add(compressionParam);
+            }
         }
 
         if (extraParameters is not null)
@@ -144,21 +149,32 @@ public static class GhostscriptRunner
         var fromEnv = Environment.GetEnvironmentVariable("GHOSTSCRIPT_EXE");
         if (!string.IsNullOrWhiteSpace(fromEnv)) return fromEnv;
 
-        // 2) Dossier local "Ghostscript" à côté de l'exécutable
+        // 2) Dossier portable "Resources/Ghostscript" à côté de l'exécutable
         string baseDirectory = AppContext.BaseDirectory;
-        string localFolder = Path.Combine(baseDirectory, "Ghostscript");
-        if (Directory.Exists(localFolder))
+        string resourcesFolder = Path.Combine(baseDirectory, "Resources", "Ghostscript");
+        
+        // Essayer aussi le dossier "Ghostscript" direct (pour compatibilité)
+        var ghostscriptPaths = new[]
         {
-            var candidates = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? new[] { "gswin64c.exe", "gswin32c.exe", "gswin64c.cmd", "gswin32c.cmd" }
-                : new[] { "gs", "gsx" };
-
-            foreach (var candidate in candidates)
+            resourcesFolder,
+            Path.Combine(baseDirectory, "Ghostscript")
+        };
+        
+        foreach (var ghostscriptFolder in ghostscriptPaths)
+        {
+            if (Directory.Exists(ghostscriptFolder))
             {
-                var path = Path.Combine(localFolder, candidate);
-                if (File.Exists(path))
+                var candidates = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? new[] { "gswin64c.exe", "gswin32c.exe", "gswin64c.cmd", "gswin32c.cmd" }
+                    : new[] { "gs", "gsx" };
+
+                foreach (var candidate in candidates)
                 {
-                    return path;
+                    var path = Path.Combine(ghostscriptFolder, candidate);
+                    if (File.Exists(path))
+                    {
+                        return path;
+                    }
                 }
             }
         }
@@ -169,4 +185,26 @@ public static class GhostscriptRunner
     }
 
     static string Quote(string s) => s.Contains(' ') ? $"\"{s}\"" : s;
+
+    static string? GetCompressionParameter(string compression, string device)
+    {
+        // For TIFF devices, some compressions need special handling
+        if (device.StartsWith("tiff", StringComparison.OrdinalIgnoreCase))
+        {
+            return compression.ToLower() switch
+            {
+                "lzw" => "-sCompression=lzw",
+                "zip" => "-sCompression=zip", // Also known as deflate
+                "packbits" => "-sCompression=packbits",
+                "g3" => "-sCompression=g3",
+                "g4" => "-sCompression=g4",
+                "jpeg" => "-sCompression=jpeg",
+                "none" or "null" => null, // No compression parameter
+                _ => $"-sCompression={compression}"
+            };
+        }
+        
+        // For other devices, use the compression as-is
+        return string.IsNullOrWhiteSpace(compression) ? null : $"-sCompression={compression}";
+    }
 }

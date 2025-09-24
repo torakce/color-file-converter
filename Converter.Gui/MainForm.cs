@@ -8,21 +8,39 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Diagnostics;
 using Converter.Core;
-using Converter.Gui.Services;
-using Converter.Gui.Profiles;
 
 namespace Converter.Gui;
 
 public partial class MainForm : Form
 {
-    private readonly ProfileRepository _profileRepository = new();
+    // Windows API imports pour gestion intelligente des fenêtres
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+    
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+    
+    [DllImport("user32.dll")]
+    private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder text, int count);
+    
+    [DllImport("user32.dll")]
+    private static extern int GetWindowTextLength(IntPtr hWnd);
+    
+    [DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumWindowsDelegate enumFunc, IntPtr lParam);
+    
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+    
+    private delegate bool EnumWindowsDelegate(IntPtr hWnd, IntPtr lParam);
+    private const int SW_RESTORE = 9;
+
     private readonly BatchConversionService _conversionService = new();
-    private readonly List<ConversionProfile> _profiles;
-    private readonly string _settingsPath;
     private readonly string _logFilePath;
     private readonly Logger _logger;
-    private UserSettings _settings;
     private readonly List<string> _files = new();
     private CancellationTokenSource? _conversionCts;
     private bool _isConverting;
@@ -30,7 +48,7 @@ public partial class MainForm : Form
     // Contrôles de l'interface
     private ListBox _filesList;
     private Label _dropInstructionLabel;
-    private ComboBox _profileCombo;
+    // _colorModeCombo supprimé - interface simplifiée sans profils
     private TextBox _outputTextBox;
     private CheckBox _overwriteCheckBox;
     private CheckBox _openFolderCheckBox;
@@ -82,16 +100,13 @@ public partial class MainForm : Form
 
     public MainForm()
     {
-        // Initialiser les services
-        _settingsPath = Path.Combine(ProfileRepository.GetConfigurationDirectory(), "settings.json");
-        _settings = UserSettings.Load(_settingsPath);
-        _profiles = _profileRepository.Load().ToList();
-        
         // Initialiser le logger
-        _logFilePath = Path.Combine(ProfileRepository.GetConfigurationDirectory(), "converter.log");
+        var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ColorFileConverter");
+        Directory.CreateDirectory(appDataPath);
+        _logFilePath = Path.Combine(appDataPath, "converter.log");
         _logger = new Logger(_logFilePath, LogLevel.Info);
         
-        _logger.LogInfo("Application", "Démarrage de Color File Converter", $"Version GUI, {_profiles.Count} profils chargés");
+        _logger.LogInfo("Application", "Démarrage de Color File Converter", "Version GUI v2.1 - Ghostscript intégré");
 
         InitializeComponent();
         CreateInterface();
@@ -201,7 +216,7 @@ public partial class MainForm : Form
         actionsLayout.Controls.Add(_stopButton, 1, 0);
 
         // Bouton de surveillance de dossiers
-        _watchButton = new WatchOptionsButton(_settingsPath, _settings)
+        _watchButton = new WatchOptionsButton()
         {
             Size = new Size(120, 35),
             BackColor = Color.LightBlue,
@@ -288,7 +303,7 @@ public partial class MainForm : Form
 
         // Créer les sections dans le layout gauche
         CreateFileSection(leftLayout, 0);
-        CreateProfileSection(leftLayout, 1);
+        CreateParametersSection(leftLayout, 1);
         CreateOutputSection(leftLayout, 2);
     }
 
@@ -397,90 +412,37 @@ public partial class MainForm : Form
         parent.Controls.Add(filesGroup);
     }
 
-    private void CreateProfileSection(TableLayoutPanel parent, int row)
+    private void CreateParametersSection(TableLayoutPanel parent, int row)
     {
-        var profileGroup = new GroupBox
+        var paramsGroup = new GroupBox
         {
-            Text = "Profil de conversion",
+            Text = "Paramètres de conversion",
             Dock = DockStyle.Fill,
             Margin = new Padding(5)
         };
-        parent.Controls.Add(profileGroup, 0, row);
+        parent.Controls.Add(paramsGroup, 0, row);
 
-        // Utiliser un TableLayoutPanel pour organiser les contrôles horizontalement
-        var profileLayout = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 3,
-            RowCount = 1,
-            Margin = new Padding(5)
-        };
-        profileLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));  // Label
-        profileLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 80F)); // ComboBox
-        profileLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));     // Button (taille fixe)
-        profileLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-        
-        profileGroup.Controls.Add(profileLayout);
-
-        var profileLabel = new Label
-        {
-            Text = "Profil:",
-            AutoSize = false,
-            Dock = DockStyle.Fill,
-            TextAlign = ContentAlignment.MiddleLeft,
-            Margin = new Padding(3),
-            MinimumSize = new Size(60, 23),
-            MaximumSize = new Size(60, 23)
-        };
-        profileLayout.Controls.Add(profileLabel, 0, 0);
-
-        _profileCombo = new ComboBox
-        {
-            Dock = DockStyle.Fill,
-            DropDownStyle = ComboBoxStyle.DropDownList,
-            Margin = new Padding(5, 3, 5, 3),
-            Height = 23
-        };
-        _profileCombo.SelectedIndexChanged += ProfileCombo_SelectedIndexChanged;
-        profileLayout.Controls.Add(_profileCombo, 1, 0);
-
-        var manageProfilesButton = new Button
-        {
-            Text = "Gérer",
-            AutoSize = false,
-            Dock = DockStyle.Fill,
-            Margin = new Padding(3, 3, 3, 3),
-            Height = 23,
-            FlatStyle = FlatStyle.Standard
-        };
-        manageProfilesButton.Click += ManageProfilesButton_Click;
-        profileLayout.Controls.Add(manageProfilesButton, 2, 0);
-
-        // Modifier le layout principal pour inclure une deuxième ligne pour les paramètres (collée)
-        profileLayout.RowCount = 2;
-        profileLayout.RowStyles.Clear();
-        profileLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Ligne du profil
-        profileLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Ligne des paramètres
-        
-        // Ajouter les contrôles de paramètres de conversion (une seule ligne, collée au profil)
+        // Layout pour les 3 paramètres essentiels
         var paramsLayout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 6,
             RowCount = 1,
-            Margin = new Padding(3, 0, 3, 3),
+            Margin = new Padding(5),
             Padding = new Padding(0)
         };
         paramsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));     // Label Résolution
         paramsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33F)); // Résolution
         paramsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));     // Label Compression
         paramsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33F)); // Compression
-        paramsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));     // Label Profondeur
-        paramsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34F)); // Profondeur
+        paramsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));     // Label Couleurs
+        paramsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34F)); // Couleurs
         paramsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        
+        paramsGroup.Controls.Add(paramsLayout);
 
-        // Résolution
-        var resLabel = new Label { Text = "Résolution:", AutoSize = true, TextAlign = ContentAlignment.MiddleLeft };
+        // Résolution (DPI)
+        var resLabel = new Label { Text = "DPI:", AutoSize = true, TextAlign = ContentAlignment.MiddleLeft, Margin = new Padding(3) };
         paramsLayout.Controls.Add(resLabel, 0, 0);
         
         _resolutionCombo = new ComboBox
@@ -496,17 +458,11 @@ public partial class MainForm : Form
         _resolutionCombo.SelectedIndexChanged += ParameterChanged;
         paramsLayout.Controls.Add(_resolutionCombo, 1, 0);
         
-        // Tooltip pour la résolution
         var toolTip1 = new ToolTip();
-        toolTip1.SetToolTip(_resolutionCombo, 
-            "Résolution en DPI (points par pouce)\n" +
-            "• 72-96: Web/écran\n" +
-            "• 150-200: Usage général\n" +
-            "• 300+: Impression/archivage\n" +
-            "Plus élevé = meilleure qualité mais fichiers plus gros");
+        toolTip1.SetToolTip(_resolutionCombo, "Résolution en DPI (points par pouce). Plus élevé = meilleure qualité mais fichiers plus gros.");
 
         // Compression TIFF
-        var compressionLabel = new Label { Text = "Compression:", AutoSize = true, TextAlign = ContentAlignment.MiddleLeft };
+        var compressionLabel = new Label { Text = "Compression:", AutoSize = true, TextAlign = ContentAlignment.MiddleLeft, Margin = new Padding(3) };
         paramsLayout.Controls.Add(compressionLabel, 2, 0);
         
         _compressionCombo = new ComboBox
@@ -517,32 +473,24 @@ public partial class MainForm : Form
             Margin = new Padding(3)
         };
         
-        // Compressions TIFF disponibles avec leurs descriptions
         _compressionCombo.Items.AddRange(new[] { 
-            "Aucune (non compressé)",
-            "LZW (sans perte)",
-            "ZIP/Deflate (sans perte)", 
-            "PackBits (sans perte)",
-            "G3 (Fax, N&B uniquement)",
-            "G4 (Fax, N&B uniquement)",
-            "JPEG (avec perte, couleur/gris)"
+            "Aucune",
+            "LZW",
+            "ZIP", 
+            "PackBits",
+            "G3 (N&B)",
+            "G4 (N&B)",
+            "JPEG"
         });
         _compressionCombo.SelectedIndex = 1; // LZW par défaut
         _compressionCombo.SelectedIndexChanged += ParameterChanged;
         paramsLayout.Controls.Add(_compressionCombo, 3, 0);
         
-        // Tooltip pour la compression
         var toolTip2 = new ToolTip();
-        toolTip2.SetToolTip(_compressionCombo,
-            "Type de compression TIFF\n" +
-            "• LZW: Équilibre qualité/taille (recommandé)\n" +
-            "• G3/G4: Fax, nécessite N&B, très compact\n" +
-            "• ZIP: Excellente compression sans perte\n" +
-            "• JPEG: Petits fichiers mais perte de qualité\n" +
-            "• Aucune: Qualité max, fichiers très gros");
+        toolTip2.SetToolTip(_compressionCombo, "Type de compression TIFF. LZW recommandé pour l'équilibre qualité/taille.");
 
-        // Bit depth / Profondeur
-        var bitDepthLabel = new Label { Text = "Profondeur:", AutoSize = true, TextAlign = ContentAlignment.MiddleLeft };
+        // Type de couleurs
+        var bitDepthLabel = new Label { Text = "Couleurs:", AutoSize = true, TextAlign = ContentAlignment.MiddleLeft, Margin = new Padding(3) };
         paramsLayout.Controls.Add(bitDepthLabel, 4, 0);
         
         _bitDepthCombo = new ComboBox
@@ -552,46 +500,36 @@ public partial class MainForm : Form
             DropDownStyle = ComboBoxStyle.DropDownList,
             Margin = new Padding(3)
         };
-        _bitDepthCombo.Items.AddRange(new[] { "1 bit (N&B)", "8 bits (256 niveaux)", "24 bits (16M couleurs)" });
-        _bitDepthCombo.SelectedIndex = 2; // 24 bits par défaut
+        _bitDepthCombo.Items.AddRange(new[] { "N&B", "Gris", "Couleurs" });
+        _bitDepthCombo.SelectedIndex = 2; // Couleurs par défaut
         _bitDepthCombo.SelectedIndexChanged += ParameterChanged;
         paramsLayout.Controls.Add(_bitDepthCombo, 5, 0);
         
-        // Tooltip pour la profondeur
         var toolTip3 = new ToolTip();
-        toolTip3.SetToolTip(_bitDepthCombo,
-            "Profondeur de couleur\n" +
-            "• 1 bit: Noir & Blanc seulement (G3/G4 obligatoire)\n" +
-            "• 8 bits: Niveaux de gris (256 nuances)\n" +
-            "• 24 bits: Couleurs complètes (16M couleurs)\n" +
-            "Plus élevé = plus de détails mais fichiers plus gros");
+        toolTip3.SetToolTip(_bitDepthCombo, "Type de couleurs. N&B permet G3/G4, Couleurs pour documents complexes.");
 
-        // Lissage supprimé - utilisation d'une valeur par défaut dans la logique
-
-        // Ajouter les paramètres à la deuxième ligne du layout principal des profils
-        profileLayout.Controls.Add(paramsLayout, 0, 1);
-        profileLayout.SetColumnSpan(paramsLayout, 3); // Étendre sur les 3 colonnes
-
-        // Ajouter une ligne pour les avertissements de validation
-        profileLayout.RowCount = 3;
-        profileLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Ligne d'avertissement
-        
+        // Validation des paramètres (pour afficher les avertissements)
         _validationWarningLabel = new Label
         {
             Text = "",
+            ForeColor = Color.Orange,
             AutoSize = true,
             Dock = DockStyle.Fill,
-            ForeColor = Color.Orange,
-            Font = new Font(this.Font.FontFamily, this.Font.Size - 1, FontStyle.Italic),
-            Margin = new Padding(6, 0, 3, 3),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(5, 0, 5, 0),
             Visible = false
         };
-        profileLayout.Controls.Add(_validationWarningLabel, 0, 2);
-        profileLayout.SetColumnSpan(_validationWarningLabel, 3); // Étendre sur les 3 colonnes
+        // Ajouter une deuxième ligne au layout pour les avertissements
+        paramsLayout.RowCount = 2;
+        paramsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        
+        paramsLayout.Controls.Add(_validationWarningLabel, 0, 1);
+        paramsLayout.SetColumnSpan(_validationWarningLabel, 6);
 
         // Ajouter les validations pour les compressions incompatibles
         _compressionCombo.SelectedIndexChanged += ValidateCompressionCompatibility;
-        _bitDepthCombo.SelectedIndexChanged += ValidateCompressionCompatibility;
+        _bitDepthCombo.SelectedIndexChanged += OnBitDepthChanged;
+        UpdateCompressionOptions();
     }
 
     // Structure pour les paramètres de conversion
@@ -599,7 +537,7 @@ public partial class MainForm : Form
     {
         public int Resolution { get; set; } = 300;
         public string Compression { get; set; } = "LZW (sans perte)";
-        public string BitDepth { get; set; } = "24 bits (16M couleurs)";
+        public string BitDepth { get; set; } = "Couleurs (24 bits)";
         public string Smoothing { get; set; } = "Normal (4x)";
         public bool MonoPages { get; set; } = false;
     }
@@ -614,6 +552,89 @@ public partial class MainForm : Form
         RefreshPreview();
     }
     
+    private void OnBitDepthChanged(object? sender, EventArgs e)
+    {
+        UpdateCompressionOptions();
+        ValidateCompressionCompatibility(sender, e);
+    }
+
+    private void UpdateCompressionOptions()
+    {
+        if (_bitDepthCombo == null || _compressionCombo == null) return;
+
+        var selectedBitDepth = _bitDepthCombo.SelectedItem?.ToString();
+        var currentCompression = _compressionCombo.SelectedItem?.ToString();
+
+        // Sauvegarder la sélection actuelle si possible
+        _compressionCombo.SelectedIndexChanged -= ValidateCompressionCompatibility;
+
+        try
+        {
+            _compressionCombo.Items.Clear();
+
+            if (selectedBitDepth == "N&B")
+            {
+                // Pour le noir et blanc, seules certaines compressions sont appropriées
+                _compressionCombo.Items.AddRange(new[] { 
+                    "Aucune",
+                    "G3 (N&B)",
+                    "G4 (N&B)",
+                    "LZW",
+                    "ZIP", 
+                    "PackBits"
+                });
+                
+                // Sélectionner G4 par défaut pour le noir et blanc
+                if (_compressionCombo.Items.Contains("G4 (N&B)"))
+                    _compressionCombo.SelectedItem = "G4 (N&B)";
+                else
+                    _compressionCombo.SelectedIndex = 0;
+            }
+            else if (selectedBitDepth == "Gris")
+            {
+                // Pour les niveaux de gris
+                _compressionCombo.Items.AddRange(new[] { 
+                    "Aucune",
+                    "LZW",
+                    "ZIP", 
+                    "PackBits",
+                    "JPEG"
+                });
+                
+                // Essayer de conserver la sélection précédente si compatible
+                if (currentCompression != null && _compressionCombo.Items.Contains(currentCompression))
+                    _compressionCombo.SelectedItem = currentCompression;
+                else if (_compressionCombo.Items.Contains("LZW"))
+                    _compressionCombo.SelectedItem = "LZW";
+                else
+                    _compressionCombo.SelectedIndex = 0;
+            }
+            else if (selectedBitDepth == "Couleurs")
+            {
+                // Pour les couleurs
+                _compressionCombo.Items.AddRange(new[] { 
+                    "Aucune",
+                    "LZW",
+                    "ZIP", 
+                    "PackBits",
+                    "JPEG"
+                });
+                
+                // Essayer de conserver la sélection précédente si compatible
+                if (currentCompression != null && _compressionCombo.Items.Contains(currentCompression))
+                    _compressionCombo.SelectedItem = currentCompression;
+                else if (_compressionCombo.Items.Contains("LZW"))
+                    _compressionCombo.SelectedItem = "LZW";
+                else
+                    _compressionCombo.SelectedIndex = 0;
+            }
+        }
+        finally
+        {
+            _compressionCombo.SelectedIndexChanged += ValidateCompressionCompatibility;
+        }
+    }
+
     private void ValidateCompressionCompatibility(object? sender, EventArgs e)
     {
         var parameters = GetCurrentConversionParameters();
@@ -624,19 +645,19 @@ public partial class MainForm : Form
         
         // Vérifier les incompatibilités et afficher des avertissements discrets
         if ((parameters.Compression.Contains("G3") || parameters.Compression.Contains("G4")) 
-            && !parameters.BitDepth.Contains("1 bit"))
+            && !parameters.BitDepth.Contains("N&B"))
         {
             // Afficher un avertissement visuel sans bloquer
-            _validationWarningLabel.Text = "⚠️ G3/G4 nécessite 1 bit (N&B). Correction automatique appliquée.";
+            _validationWarningLabel.Text = "⚠️ G3/G4 nécessite N&B. Correction automatique appliquée.";
             _validationWarningLabel.Visible = true;
             
-            // Changer automatiquement vers 1 bit (sans MessageBox intrusif)
-            SetBitDepth("1 bit (N&B)");
+            // Changer automatiquement vers N&B (sans MessageBox intrusif)
+            SetBitDepth("N&B");
         }
-        else if (parameters.Compression.Contains("JPEG") && parameters.BitDepth.Contains("1 bit"))
+        else if (parameters.Compression.Contains("JPEG") && parameters.BitDepth.Contains("N&B"))
         {
             // Nouveau : Avertissement pour JPEG avec monochrome
-            _validationWarningLabel.Text = "💡 Conseil: JPEG fonctionne mieux avec 8 ou 24 bits pour de meilleurs résultats.";
+            _validationWarningLabel.Text = "💡 Conseil: JPEG fonctionne mieux avec Gris ou Couleurs.";
             _validationWarningLabel.ForeColor = Color.DarkBlue;
             _validationWarningLabel.Visible = true;
         }
@@ -675,7 +696,7 @@ public partial class MainForm : Form
                     // Créer un device basé sur les paramètres
                     var device = CreateDeviceFromParameters(parameters);
                     var dpi = parameters.Resolution;
-                    var compression = GetCompressionValue(parameters.Compression);
+                    var compression = GetCompressionFromDisplay(parameters.Compression);
 
                     // Créer le profil personnalisé
                     var customProfile = new ConversionProfile(
@@ -686,30 +707,8 @@ public partial class MainForm : Form
                         Array.Empty<string>()
                     );
 
-                    // Remplacer le profil "Personnalisé" s'il existe déjà
-                    var existingCustomIndex = -1;
-                    for (int i = 0; i < _profileCombo.Items.Count; i++)
-                    {
-                        if (_profileCombo.Items[i] is ConversionProfile p && p.Name == "Personnalisé")
-                        {
-                            existingCustomIndex = i;
-                            break;
-                        }
-                    }
-
-                    if (existingCustomIndex >= 0)
-                    {
-                        _profileCombo.Items[existingCustomIndex] = customProfile;
-                    }
-                    else
-                    {
-                        _profileCombo.Items.Add(customProfile);
-                    }
-
-                    // Sélectionner le profil personnalisé (temporairement désactiver l'événement pour éviter la boucle)
-                    _profileCombo.SelectedIndexChanged -= ProfileCombo_SelectedIndexChanged;
-                    _profileCombo.SelectedItem = customProfile;
-                    _profileCombo.SelectedIndexChanged += ProfileCombo_SelectedIndexChanged;
+                    // La gestion personnalisée des profils a été supprimée 
+                    // Les paramètres sont maintenant automatiques selon le mode de couleur
                 }
             }
         }
@@ -750,7 +749,7 @@ public partial class MainForm : Form
             parameters.Compression = _compressionCombo.SelectedItem.ToString() ?? "LZW (sans perte)";
         
         if (_bitDepthCombo?.SelectedItem != null)
-            parameters.BitDepth = _bitDepthCombo.SelectedItem.ToString() ?? "24 bits (16M couleurs)";
+            parameters.BitDepth = _bitDepthCombo.SelectedItem.ToString() ?? "Couleurs (24 bits)";
         
         // Lissage fixe à valeur par défaut optimale
         parameters.Smoothing = "Normal (4x)";
@@ -775,59 +774,177 @@ public partial class MainForm : Form
         // Convertir les paramètres en device GhostScript approprié
         return parameters.BitDepth switch
         {
-            "1 bit (N&B)" => "tiffg4", // Toujours G4 pour le monochrome
-            "8 bits (256 niveaux)" => "tiffgray",
-            "24 bits (16M couleurs)" => "tiff24nc",
+            "N&B" => "tiffg4", // Toujours G4 pour le monochrome
+            "Gris" => "tiffgray",
+            "Couleurs" => "tiff24nc",
             _ => "tiff24nc"
         };
     }
 
-    private string? GetCompressionValue(string compressionDisplay)
+    private string GetCompressionFromDisplay(string compressionDisplay)
     {
         return compressionDisplay switch
         {
-            "Aucune (non compressé)" => null,
-            "LZW (sans perte)" => "lzw",
-            "ZIP/Deflate (sans perte)" => "zip",
-            "PackBits (sans perte)" => "packbits",
-            "G3 (Fax, N&B uniquement)" => "g3",
-            "G4 (Fax, N&B uniquement)" => "g4",
-            "JPEG (avec perte, couleur/gris)" => "jpeg",
+            "Aucune" => "none",
+            "LZW" => "lzw",
+            "ZIP" => "lzw", // ZIP n'est pas supporté par TIFF, utiliser LZW à la place
+            "PackBits" => "pack", // Ghostscript utilise "pack" et non "packbits"
+            "G3 (N&B)" => "g3",
+            "G4 (N&B)" => "g4",
+            "JPEG" => "none", // JPEG compression n'est pas supportée pour TIFF, utiliser none
             _ => "lzw"
         };
     }
 
-    // Méthode publique pour obtenir les paramètres de conversion actuels (utilisée par l'aperçu et la conversion)
+    // Méthode publique pour obtenir les paramètres de conversion actuels (basée sur les contrôles)
     public ConversionProfile GetActiveConversionProfile()
     {
-        var parameters = GetCurrentConversionParameters();
-        var device = CreateDeviceFromParameters(parameters);
-        var compression = GetCompressionValue(parameters.Compression);
+        // Lire directement les valeurs des contrôles
+        var dpi = int.TryParse(_resolutionCombo.Text, out var parsedDpi) ? parsedDpi : 300;
+        var compression = GetCompressionFromDisplay(_compressionCombo.SelectedItem?.ToString() ?? "LZW");
         
-        // Ajouter les paramètres de lissage comme paramètres extra
-        var extraParams = new List<string>();
-        var smoothingLevel = parameters.Smoothing switch
+        // Déterminer le device selon le type de couleur sélectionné
+        var device = _bitDepthCombo.SelectedIndex switch
         {
-            "Aucun" => 1,
-            "Léger (2x)" => 2,
-            "Normal (4x)" => 4,
-            "Fort (8x)" => 8,
-            _ => 4
+            0 => "tiffg4",      // N&B
+            1 => "tiffgray",    // Gris 
+            2 => "tiff24nc",    // Couleurs
+            _ => "tiff24nc"
         };
         
-        if (smoothingLevel > 1)
-        {
-            extraParams.Add($"-dTextAlphaBits={smoothingLevel}");
-            extraParams.Add($"-dGraphicsAlphaBits={smoothingLevel}");
-        }
+        var profileName = _bitDepthCombo.SelectedItem?.ToString() ?? "Couleurs";
         
-        return new ConversionProfile(
-            _profileCombo.SelectedItem?.ToString() ?? "Actuel",
-            device,
-            compression,
-            parameters.Resolution,
-            extraParams
-        );
+        return new ConversionProfile(profileName, device, compression, dpi, Array.Empty<string>());
+    }
+
+    private void OpenExplorerIntelligently(string folderPath)
+    {
+        try
+        {
+            _logger.LogInfo("UI", "Recherche d'une fenêtre explorateur existante", folderPath);
+            
+            // D'abord, vérifier si le dossier est déjà ouvert dans une fenêtre existante
+            var existingWindow = FindExplorerWindowForFolder(folderPath);
+            if (existingWindow != IntPtr.Zero)
+            {
+                _logger.LogInfo("UI", "Fenêtre existante trouvée, mise au premier plan");
+                ShowWindow(existingWindow, SW_RESTORE);
+                SetForegroundWindow(existingWindow);
+                return;
+            }
+            
+            _logger.LogInfo("UI", "Aucune fenêtre existante, ouverture d'une nouvelle instance", folderPath);
+            
+            // Aucune fenêtre existante trouvée, ouvrir une nouvelle instance
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = $"\"{folderPath}\"",
+                UseShellExecute = true
+            };
+            
+            var process = Process.Start(startInfo);
+            
+            if (process != null)
+            {
+                _logger.LogInfo("UI", "Nouvelle instance d'explorateur lancée", $"PID: {process.Id}");
+                
+                // Attendre un peu que l'explorateur se lance
+                Thread.Sleep(300);
+                
+                // Tenter de mettre la nouvelle fenêtre au premier plan
+                try
+                {
+                    if (!process.HasExited)
+                    {
+                        // Chercher la nouvelle fenêtre d'explorateur
+                        var newWindow = FindExplorerWindowForFolder(folderPath);
+                        if (newWindow != IntPtr.Zero)
+                        {
+                            ShowWindow(newWindow, SW_RESTORE);
+                            SetForegroundWindow(newWindow);
+                            _logger.LogInfo("UI", "Nouvelle fenêtre explorateur mise au premier plan");
+                        }
+                        else
+                        {
+                            _logger.LogWarning("UI", "Impossible de trouver la nouvelle fenêtre d'explorateur");
+                        }
+                    }
+                }
+                catch (Exception focusEx)
+                {
+                    _logger.LogWarning("UI", "Impossible de mettre la nouvelle fenêtre au premier plan", focusEx.Message);
+                }
+            }
+            else
+            {
+                _logger.LogError("UI", "Échec du lancement du processus explorateur");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("UI", "Erreur lors de l'ouverture intelligente de l'explorateur", ex, folderPath);
+        }
+    }
+
+    private IntPtr FindExplorerWindowForFolder(string targetPath)
+    {
+        var foundWindow = IntPtr.Zero;
+        var normalizedTargetPath = Path.GetFullPath(targetPath).TrimEnd('\\').ToLowerInvariant();
+        
+        _logger.LogInfo("UI", "Recherche de fenêtre pour le chemin", normalizedTargetPath);
+
+        try
+        {
+            EnumWindows((hWnd, lParam) =>
+            {
+                try
+                {
+                    // Vérifier si c'est une fenêtre d'explorateur
+                    GetWindowThreadProcessId(hWnd, out uint processId);
+                    var process = Process.GetProcessById((int)processId);
+                    
+                    if (process.ProcessName.Equals("explorer", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Obtenir le titre de la fenêtre
+                        var length = GetWindowTextLength(hWnd);
+                        if (length > 0)
+                        {
+                            var title = new System.Text.StringBuilder(length + 1);
+                            GetWindowText(hWnd, title, title.Capacity);
+                            var windowTitle = title.ToString();
+                            
+                            _logger.LogInfo("UI", "Fenêtre explorateur trouvée", $"Titre: {windowTitle}");
+                            
+                            // Vérifier si le titre contient le nom du dossier ou le chemin
+                            var folderName = Path.GetFileName(normalizedTargetPath);
+                            if (!string.IsNullOrEmpty(folderName))
+                            {
+                                if (windowTitle.ToLowerInvariant().Contains(folderName.ToLowerInvariant()) ||
+                                    windowTitle.ToLowerInvariant().Contains(normalizedTargetPath))
+                                {
+                                    _logger.LogInfo("UI", "Correspondance trouvée", $"Fenêtre: {windowTitle} pour {normalizedTargetPath}");
+                                    foundWindow = hWnd;
+                                    return false; // Arrêter l'énumération
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("UI", "Erreur lors de l'analyse d'une fenêtre", ex.Message);
+                }
+                
+                return true; // Continuer l'énumération
+            }, IntPtr.Zero);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("UI", "Erreur lors de l'énumération des fenêtres", ex);
+        }
+
+        return foundWindow;
     }
 
     private void CreateOutputSection(TableLayoutPanel parent, int row)
@@ -868,7 +985,7 @@ public partial class MainForm : Form
         _outputTextBox = new TextBox
         {
             Dock = DockStyle.Fill,
-            Text = _settings.LastOutputFolder ?? Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+            Text = Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
             Margin = new Padding(3)
         };
         outputLayout.Controls.Add(_outputTextBox, 0, 1);
@@ -902,7 +1019,7 @@ public partial class MainForm : Form
             Text = "Ouvrir dossier après conversion",
             AutoSize = true,
             Location = new Point(0, 25),
-            Checked = _settings.OpenExplorerAfterConversion
+            Checked = true
         };
         checkBoxPanel.Controls.Add(_openFolderCheckBox);
 
@@ -936,27 +1053,15 @@ public partial class MainForm : Form
 
     private void InitializeData()
     {
-        RefreshProfiles();
+        InitializeParameters();
         UpdateFilesList();
         UpdateActions();
     }
 
-    private void RefreshProfiles()
+    private void InitializeParameters()
     {
-        _profileCombo.BeginUpdate();
-        _profileCombo.Items.Clear();
-        foreach (var profile in _profiles)
-        {
-            _profileCombo.Items.Add(profile);
-        }
-        _profileCombo.EndUpdate();
-
-        if (_profiles.Count > 0)
-        {
-            var selected = _profiles.FirstOrDefault(p => string.Equals(p.Name, _settings.LastProfileName, StringComparison.OrdinalIgnoreCase))
-                           ?? _profiles[0];
-            _profileCombo.SelectedItem = selected;
-        }
+        // Les paramètres sont déjà initialisés dans CreateParametersSection
+        // avec des valeurs par défaut appropriées
     }
 
     private void UpdateFilesList(bool selectLast = false)
@@ -988,9 +1093,9 @@ public partial class MainForm : Form
     {
         bool hasFiles = _files.Count > 0;
         bool hasOutput = !string.IsNullOrWhiteSpace(_outputTextBox.Text);
-        bool hasProfile = _profileCombo.SelectedItem != null;
+        bool hasValidParameters = _bitDepthCombo.SelectedIndex >= 0 && _compressionCombo.SelectedIndex >= 0;
 
-        _convertButton.Enabled = hasFiles && hasOutput && hasProfile && !_isConverting;
+        _convertButton.Enabled = hasFiles && hasOutput && hasValidParameters && !_isConverting;
         _stopButton.Enabled = _isConverting;
     }
 
@@ -1350,57 +1455,7 @@ public partial class MainForm : Form
         }
     }
 
-    private void ProfileCombo_SelectedIndexChanged(object? sender, EventArgs e)
-    {
-        if (_profileCombo.SelectedItem is ConversionProfile profile)
-        {
-            _settings.LastProfileName = profile.Name;
-            UpdateActions();
-            
-            // Mettre à jour les paramètres affichés selon le profil sélectionné
-            UpdateParametersFromProfile(profile);
-            
-            // Regénérer l'aperçu avec le nouveau profil
-            RefreshPreview();
-        }
-    }
-
-    private void UpdateParametersFromProfile(ConversionProfile profile)
-    {
-        // Utiliser les références directes aux contrôles
-        
-        // Désactiver temporairement les événements pour éviter les boucles
-        _resolutionCombo.TextChanged -= ParameterChanged;
-        _resolutionCombo.SelectedIndexChanged -= ParameterChanged;
-        _compressionCombo.SelectedIndexChanged -= ParameterChanged;
-        _bitDepthCombo.SelectedIndexChanged -= ParameterChanged;
-        
-        try
-        {
-            // Résolution (DPI)
-            _resolutionCombo.Text = profile.Dpi.ToString();
-            
-            // Compression basée sur le profil
-            var compressionDisplay = GetCompressionDisplay(profile.Compression);
-            if (_compressionCombo.Items.Contains(compressionDisplay))
-                _compressionCombo.SelectedItem = compressionDisplay;
-            
-            // Profondeur de bits basée sur le device
-            var bitDepth = GetBitDepthFromDevice(profile.Device);
-            if (_bitDepthCombo.Items.Contains(bitDepth))
-                _bitDepthCombo.SelectedItem = bitDepth;
-            
-            // Lissage supprimé - utilisation d'une valeur par défaut
-        }
-        finally
-        {
-            // Réactiver les événements
-            _resolutionCombo.TextChanged += ParameterChanged;
-            _resolutionCombo.SelectedIndexChanged += ParameterChanged;
-            _compressionCombo.SelectedIndexChanged += ParameterChanged;
-            _bitDepthCombo.SelectedIndexChanged += ParameterChanged;
-        }
-    }
+    // Méthodes de profils automatiques supprimées - interface simplifiée
 
     private string GetCompressionDisplay(string? compression)
     {
@@ -1421,10 +1476,10 @@ public partial class MainForm : Form
     {
         return device.ToLower() switch
         {
-            var d when d.Contains("g4") || d.Contains("g3") || d.Contains("mono") => "1 bit (N&B)",
-            var d when d.Contains("gray") => "8 bits (256 niveaux)",
-            var d when d.Contains("24") || d.Contains("color") => "24 bits (16M couleurs)",
-            _ => "24 bits (16M couleurs)"
+            var d when d.Contains("g4") || d.Contains("g3") || d.Contains("mono") => "Noir & Blanc (1bit)",
+            var d when d.Contains("gray") => "Niveaux de gris (8 bits)",
+            var d when d.Contains("24") || d.Contains("color") => "Couleurs (24 bits)",
+            _ => "Couleurs (24 bits)"
         };
     }
 
@@ -1452,17 +1507,7 @@ public partial class MainForm : Form
 
 
 
-    private void ManageProfilesButton_Click(object? sender, EventArgs e)
-    {
-        var manager = new ProfileManagerForm(_profiles);
-        if (manager.ShowDialog(this) == DialogResult.OK)
-        {
-            _profiles.Clear();
-            _profiles.AddRange(manager.Profiles);
-            _profileRepository.Save(_profiles);
-            RefreshProfiles();
-        }
-    }
+    // La gestion de profils a été supprimée - paramètres automatiques selon le mode de couleur
 
     private void BrowseButton_Click(object? sender, EventArgs e)
     {
@@ -1475,7 +1520,7 @@ public partial class MainForm : Form
         if (folderDialog.ShowDialog(this) == DialogResult.OK)
         {
             _outputTextBox.Text = folderDialog.SelectedPath;
-            _settings.LastOutputFolder = folderDialog.SelectedPath;
+            // Sauvegarde des préférences supprimée - interface simplifiée
             UpdateActions();
         }
     }
@@ -1539,6 +1584,8 @@ public partial class MainForm : Form
             return (false, $"Erreur lors de la validation du dossier de sortie: {ex.Message}");
         }
     }
+
+
 
     private async void ConvertButton_Click(object? sender, EventArgs e)
     {
@@ -1680,7 +1727,7 @@ public partial class MainForm : Form
                 {
                     _resolutionCombo.Text = "150";
                     _compressionCombo.SelectedItem = "LZW (sans perte)";
-                    _bitDepthCombo.SelectedItem = "8 bits (256 niveaux)";
+                    _bitDepthCombo.SelectedItem = "Niveaux de gris (8 bits)";
                 }
                 break;
             case DialogResult.Ignore:
@@ -1754,26 +1801,32 @@ public partial class MainForm : Form
 
         if (successCount > 0)
         {
+            _logger.LogInfo("UI", "Conversion réussie, vérification ouverture dossier", 
+                $"CheckBox cochée: {_openFolderCheckBox.Checked}, Dossier: {outputFolder}");
+            
             if (_openFolderCheckBox.Checked)
             {
                 try
                 {
                     _logger.LogInfo("UI", "Ouverture du dossier de sortie", outputFolder);
-                    System.Diagnostics.Process.Start("explorer.exe", outputFolder);
+                    OpenExplorerIntelligently(outputFolder);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError("UI", "Erreur lors de l'ouverture de l'explorateur", ex, outputFolder);
                 }
             }
+            else
+            {
+                _logger.LogInfo("UI", "Case 'Ouvrir dossier' non cochée - aucune ouverture");
+            }
+        }
+        else
+        {
+            _logger.LogInfo("UI", "Aucun fichier converti avec succès - pas d'ouverture de dossier");
         }
 
-        // Sauvegarder les paramètres
-        _settings.OpenExplorerAfterConversion = _openFolderCheckBox.Checked;
-        _settings.Save(_settingsPath);
-        
-        // Mettre à jour le bouton de surveillance
-        _watchButton.UpdateSettings(_settingsPath, _settings);
+        // Sauvegarde des préférences supprimée - interface simplifiée
 
         if (failureCount > 0)
         {
@@ -1799,11 +1852,7 @@ public partial class MainForm : Form
     {
         _logger.LogInfo("Application", "Fermeture de l'application");
         
-        // Sauvegarder les paramètres avant fermeture
-        _settings.Save(_settingsPath);
-        
-        // Mettre à jour le bouton de surveillance
-        _watchButton.UpdateSettings(_settingsPath, _settings);
+        // Sauvegarde des préférences supprimée - interface simplifiée
         
         // Annuler toute conversion en cours
         _conversionCts?.Cancel();
@@ -2307,9 +2356,9 @@ public partial class MainForm : Form
             // Récupérer les paramètres de conversion actuels (source de vérité)
             var activeProfile = GetActiveConversionProfile();
             
-            // Créer une signature unique des paramètres pour le cache (incluant l'option mono-pages)
+            // Créer une signature unique des paramètres directement des contrôles (plus de profils)
             var conversionParams = GetCurrentConversionParameters();
-            var currentParameters = $"{activeProfile.Device}_{activeProfile.Dpi}_{activeProfile.Compression}_{conversionParams.MonoPages}_{string.Join(",", activeProfile.ExtraParameters)}";
+            var currentParameters = $"{_resolutionCombo.Text}_{_compressionCombo.SelectedItem}_{_bitDepthCombo.SelectedItem}_{conversionParams.MonoPages}";
             
             // Vérifier si on peut réutiliser l'aperçu existant (cache)
             if (_lastPreviewFilePath == pdfPath && 
@@ -2409,7 +2458,7 @@ public partial class MainForm : Form
         }
         catch (OperationCanceledException)
         {
-            UpdatePreviewStatus("Aperçu annulé");
+            UpdatePreviewStatus("Génération de l'aperçu ...");
         }
         catch (Exception ex)
         {
@@ -2485,15 +2534,11 @@ public partial class MainForm : Form
     {
         try
         {
-            // Recharger les settings pour voir si la surveillance est active
-            var currentSettings = UserSettings.Load(_settingsPath);
-            
-            if (currentSettings.WatchFolderEnabled && 
-                !string.IsNullOrEmpty(currentSettings.WatchFolderPath) && 
-                Directory.Exists(currentSettings.WatchFolderPath))
+            // Statut de surveillance simplifié - pas de persistance de settings
+            if (_watchButton != null)
             {
-                _watchStatusLabel.Text = $"Surveillant: {Path.GetFileName(currentSettings.WatchFolderPath)}";
-                _watchStatusLabel.ForeColor = Color.Green;
+                _watchStatusLabel.Text = "Surveillance disponible";
+                _watchStatusLabel.ForeColor = Color.Gray;
             }
             else
             {
