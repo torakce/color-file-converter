@@ -17,4 +17,11 @@
   <ItemGroup>
     <ProjectReference Include="..\Converter.Core\Converter.Core.csproj" />
   </ItemGroup>
+
+  <!-- Copier les fichiers Ghostscript portables -->
+  <ItemGroup>
+    <Content Include="..\Resources\Ghostscript\**\*" Link="Resources\Ghostscript\%(RecursiveDir)%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>

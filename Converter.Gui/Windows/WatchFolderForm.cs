@@ -19,8 +19,6 @@ internal sealed class WatchFolderForm : Form
     private readonly RichTextBox _watchLogTextBox;
     private readonly FolderBrowserDialog _folderBrowserDialog;
     private readonly TableLayoutPanel _mainLayout;
-    private readonly UserSettings _settings;
-    private readonly string _settingsPath;
     private readonly BatchConversionService _conversionService;
 
     private FileSystemWatcher? _watcher;
@@ -31,10 +29,8 @@ internal sealed class WatchFolderForm : Form
     private const int MaxWatchLogEntries = 200;
     private string? _currentWatchFolder;
 
-    public WatchFolderForm(string settingsPath, UserSettings settings, BatchConversionService conversionService)
+    public WatchFolderForm(BatchConversionService conversionService)
     {
-        _settingsPath = settingsPath;
-        _settings = settings;
         _conversionService = conversionService;
 
         Text = "Surveillance de dossier";
@@ -92,7 +88,7 @@ internal sealed class WatchFolderForm : Form
             Anchor = AnchorStyles.Left | AnchorStyles.Right,
             Margin = new Padding(0, 0, 10, 0)
         };
-        _watchFolderTextBox.Text = _settings.WatchFolderPath ?? string.Empty;
+        _watchFolderTextBox.Text = string.Empty;
 
         _browseWatchFolderButton = new Button
         {
@@ -156,7 +152,7 @@ internal sealed class WatchFolderForm : Form
     {
         base.OnShown(e);
 
-        if (_settings.WatchFolderEnabled)
+        if (false) // Surveillance désactivée par défaut
         {
             StartWatchFolder();
         }
@@ -469,9 +465,7 @@ internal sealed class WatchFolderForm : Form
 
     private void SaveSettings()
     {
-        _settings.WatchFolderEnabled = _watchFolderCheckBox.Checked;
-        _settings.WatchFolderPath = _watchFolderTextBox.Text.Trim();
-        _settings.Save(_settingsPath);
+        // Sauvegarde des paramètres supprimée - interface simplifiée
     }
 
     private sealed record WatchLogEntry(string Text, Color Color);
@@ -488,10 +482,10 @@ internal sealed class WatchFolderForm : Form
         // On récupère les paramètres depuis les settings
         var profile = new ConversionProfile(
             "Conversion Automatique",
-            _settings.LastDevice ?? "tiff24nc",
-            _settings.LastCompression ?? "lzw",
-            _settings.LastDpi ?? 300,
-            _settings.LastExtraParameters?.Split(' ', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>()
+            "tiff24nc",
+            "lzw",
+            150,
+            Array.Empty<string>()
         );
 
         var progress = new Progress<BatchConversionProgress>(p =>
@@ -514,8 +508,8 @@ internal sealed class WatchFolderForm : Form
             profile,
             progress,
             token,
-            _settings.FileNameSuffix,
-            _settings.SeparateTiffPages,
+            "",
+            false,
             useInputFolder: true
         );
     }

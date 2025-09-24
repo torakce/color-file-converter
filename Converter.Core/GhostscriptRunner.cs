@@ -149,21 +149,32 @@ public static class GhostscriptRunner
         var fromEnv = Environment.GetEnvironmentVariable("GHOSTSCRIPT_EXE");
         if (!string.IsNullOrWhiteSpace(fromEnv)) return fromEnv;
 
-        // 2) Dossier local "Ghostscript" à côté de l'exécutable
+        // 2) Dossier portable "Resources/Ghostscript" à côté de l'exécutable
         string baseDirectory = AppContext.BaseDirectory;
-        string localFolder = Path.Combine(baseDirectory, "Ghostscript");
-        if (Directory.Exists(localFolder))
+        string resourcesFolder = Path.Combine(baseDirectory, "Resources", "Ghostscript");
+        
+        // Essayer aussi le dossier "Ghostscript" direct (pour compatibilité)
+        var ghostscriptPaths = new[]
         {
-            var candidates = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? new[] { "gswin64c.exe", "gswin32c.exe", "gswin64c.cmd", "gswin32c.cmd" }
-                : new[] { "gs", "gsx" };
-
-            foreach (var candidate in candidates)
+            resourcesFolder,
+            Path.Combine(baseDirectory, "Ghostscript")
+        };
+        
+        foreach (var ghostscriptFolder in ghostscriptPaths)
+        {
+            if (Directory.Exists(ghostscriptFolder))
             {
-                var path = Path.Combine(localFolder, candidate);
-                if (File.Exists(path))
+                var candidates = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? new[] { "gswin64c.exe", "gswin32c.exe", "gswin64c.cmd", "gswin32c.cmd" }
+                    : new[] { "gs", "gsx" };
+
+                foreach (var candidate in candidates)
                 {
-                    return path;
+                    var path = Path.Combine(ghostscriptFolder, candidate);
+                    if (File.Exists(path))
+                    {
+                        return path;
+                    }
                 }
             }
         }
