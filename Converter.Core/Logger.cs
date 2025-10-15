@@ -47,6 +47,7 @@ public sealed class Logger : IDisposable
     private readonly Queue<LogEntry> _logQueue = new Queue<LogEntry>();
     private readonly Timer _flushTimer;
     private bool _disposed = false;
+    private const long MaxLogFileSize = 10 * 1024 * 1024; // 10 MB
 
     public Logger(string logFilePath, LogLevel minLevel = LogLevel.Info)
     {
@@ -55,6 +56,9 @@ public sealed class Logger : IDisposable
         
         // Créer le répertoire du fichier de log s'il n'existe pas
         Directory.CreateDirectory(Path.GetDirectoryName(_logFilePath)!);
+        
+        // Rotation si le fichier est trop gros
+        RotateLogFileIfNeeded();
         
         // Timer pour flush automatique toutes les 5 secondes
         _flushTimer = new Timer(FlushLogs, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
@@ -136,6 +140,38 @@ public sealed class Logger : IDisposable
         {
             // En cas d'erreur de logging, on essaie d'écrire dans la console
             Console.WriteLine($"Erreur de logging: {ex.Message}");
+        }
+    }
+
+    private void RotateLogFileIfNeeded()
+    {
+        try
+        {
+            if (!File.Exists(_logFilePath)) return;
+
+            var fileInfo = new FileInfo(_logFilePath);
+            if (fileInfo.Length > MaxLogFileSize)
+            {
+                var rotatedPath = $"{_logFilePath}.{DateTime.Now:yyyyMMdd-HHmmss}.old";
+                File.Move(_logFilePath, rotatedPath);
+                
+                // Garder seulement les 5 derniers fichiers de rotation
+                var directory = Path.GetDirectoryName(_logFilePath)!;
+                var logName = Path.GetFileName(_logFilePath);
+                var oldLogs = Directory.GetFiles(directory, $"{logName}.*.old")
+                    .OrderByDescending(f => f)
+                    .Skip(5)
+                    .ToArray();
+                
+                foreach (var oldLog in oldLogs)
+                {
+                    File.Delete(oldLog);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erreur lors de la rotation des logs: {ex.Message}");
         }
     }
 

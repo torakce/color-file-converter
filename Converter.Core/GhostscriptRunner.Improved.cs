@@ -8,15 +8,34 @@ using System.Threading.Tasks;
 
 namespace Converter.Core;
 
-public static class GhostscriptRunner
+/// <summary>
+/// Version améliorée de GhostscriptRunner avec cache et meilleure gestion d'erreurs.
+/// Renommez ce fichier en GhostscriptRunner.cs pour l'utiliser.
+/// </summary>
+public static class GhostscriptRunnerImproved
 {
     private static string? _cachedGhostscriptPath;
     private static readonly object _cacheLock = new object();
 
+    /// <summary>
+    /// Convertit un PDF en fichiers TIFF en utilisant Ghostscript.
+    /// </summary>
+    /// <param name="inputPdf">Chemin du fichier PDF d'entrée</param>
+    /// <param name="outputPattern">Motif de sortie (ex: output.tif ou output_%03d.tif pour multi-pages)</param>
+    /// <param name="device">Device Ghostscript (tiffg4, tiff24nc, tiffgray, etc.)</param>
+    /// <param name="dpi">Résolution en DPI</param>
+    /// <param name="compression">Type de compression (lzw, zip, g4, etc.)</param>
+    /// <param name="extraParameters">Paramètres Ghostscript supplémentaires</param>
+    /// <param name="firstPage">Première page à convertir (optionnel)</param>
+    /// <param name="lastPage">Dernière page à convertir (optionnel)</param>
+    /// <param name="cancellationToken">Token d'annulation</param>
+    /// <exception cref="FileNotFoundException">Le fichier PDF n'existe pas</exception>
+    /// <exception cref="InvalidOperationException">Ghostscript ne peut pas être démarré</exception>
+    /// <exception cref="Exception">La conversion a échoué</exception>
     public static async Task ConvertPdfToTiffAsync(
         string inputPdf,
         string outputPattern,
-        string device = "tiffg4",   // "tiffg4" (NB, CCITT G4), "tiff24nc" (couleur 24b)
+        string device = "tiffg4",
         int dpi = 300,
         string? compression = null,
         IEnumerable<string>? extraParameters = null,
@@ -24,9 +43,21 @@ public static class GhostscriptRunner
         int? lastPage = null,
         CancellationToken cancellationToken = default)
     {
-        if (!File.Exists(inputPdf)) throw new FileNotFoundException(inputPdf);
+        ArgumentNullException.ThrowIfNull(inputPdf);
+        ArgumentNullException.ThrowIfNull(outputPattern);
+
+        if (!File.Exists(inputPdf))
+        {
+            throw new FileNotFoundException($"Le fichier PDF n'existe pas: {inputPdf}", inputPdf);
+        }
+
+        if (dpi < 72 || dpi > 2400)
+        {
+            throw new ArgumentOutOfRangeException(nameof(dpi), "Le DPI doit être entre 72 et 2400");
+        }
 
         string exe = ResolveGhostscriptExe();
+        
         // Arguments Ghostscript
         var args = new List<string>
         {
@@ -49,7 +80,6 @@ public static class GhostscriptRunner
 
         if (!string.IsNullOrWhiteSpace(compression))
         {
-            // Handle different compression types properly for TIFF
             var compressionParam = GetCompressionParameter(compression, device);
             if (!string.IsNullOrWhiteSpace(compressionParam))
             {
@@ -76,7 +106,7 @@ public static class GhostscriptRunner
         var psi = new ProcessStartInfo(exe, arguments)
         {
             RedirectStandardOutput = true,
-            RedirectStandardError  = true,
+            RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true
         };
@@ -84,7 +114,7 @@ public static class GhostscriptRunner
         using var p = new Process { StartInfo = psi };
         if (!p.Start())
         {
-            throw new InvalidOperationException("Impossible de démarrer Ghostscript.");
+            throw new InvalidOperationException($"Impossible de démarrer Ghostscript à partir de: {exe}");
         }
 
         var stdoutTask = p.StandardOutput.ReadToEndAsync(cancellationToken);
@@ -101,7 +131,7 @@ public static class GhostscriptRunner
             }
             catch
             {
-                // Ignoré : le processus peut déjà être terminé.
+                // Ignoré : le processus peut déjà être terminé
             }
         });
 
@@ -122,10 +152,22 @@ public static class GhostscriptRunner
 
         if (p.ExitCode != 0)
         {
-            throw new Exception($"Ghostscript a échoué (code {p.ExitCode}).\n{stderr}\n{stdout}");
+            var errorMessage = $"Ghostscript a échoué (code {p.ExitCode})";
+            if (!string.IsNullOrWhiteSpace(stderr))
+            {
+                errorMessage += $"\nErreur: {stderr}";
+            }
+            if (!string.IsNullOrWhiteSpace(stdout))
+            {
+                errorMessage += $"\nSortie: {stdout}";
+            }
+            throw new Exception(errorMessage);
         }
     }
 
+    /// <summary>
+    /// Alias pour ConvertPdfToTiffAsync pour compatibilité.
+    /// </summary>
     public static Task RenderPdfAsync(
         string inputPdf,
         string outputPattern,
@@ -147,11 +189,34 @@ public static class GhostscriptRunner
             lastPage,
             cancellationToken);
 
+    /// <summary>
+    /// Résout le chemin de l'exécutable Ghostscript avec cache.
+    /// </summary>
+    /// <returns>Chemin de l'exécutable Ghostscript</returns>
     static string ResolveGhostscriptExe()
     {
-        // 1) Variable env explicite
+        // Vérifier le cache d'abord
+        lock (_cacheLock)
+        {
+            if (_cachedGhostscriptPath != null)
+            {
+                return _cachedGhostscriptPath;
+            }
+        }
+
+        string? resolvedPath = null;
+
+        // 1) Variable d'environnement explicite
         var fromEnv = Environment.GetEnvironmentVariable("GHOSTSCRIPT_EXE");
-        if (!string.IsNullOrWhiteSpace(fromEnv)) return fromEnv;
+        if (!string.IsNullOrWhiteSpace(fromEnv))
+        {
+            resolvedPath = fromEnv;
+            lock (_cacheLock)
+            {
+                _cachedGhostscriptPath = resolvedPath;
+            }
+            return resolvedPath;
+        }
 
         // 2) Dossier portable "Resources/Ghostscript" à côté de l'exécutable
         string baseDirectory = AppContext.BaseDirectory;
@@ -169,7 +234,7 @@ public static class GhostscriptRunner
             if (Directory.Exists(ghostscriptFolder))
             {
                 var candidates = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                    ? new[] { "gswin64c.exe", "gswin32c.exe", "gswin64c.cmd", "gswin32c.cmd" }
+                    ? new[] { "gswin64c.exe", "gswin32c.exe", "gswin64.exe", "gswin32.exe" }
                     : new[] { "gs", "gsx" };
 
                 foreach (var candidate in candidates)
@@ -177,38 +242,66 @@ public static class GhostscriptRunner
                     var path = Path.Combine(ghostscriptFolder, candidate);
                     if (File.Exists(path))
                     {
-                        return path;
+                        resolvedPath = path;
+                        lock (_cacheLock)
+                        {
+                            _cachedGhostscriptPath = resolvedPath;
+                        }
+                        return resolvedPath;
                     }
                 }
             }
         }
 
-        // 3) Nom “classique” selon l’OS (nécessite que PATH soit OK)
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return "gswin64c"; // ou gswin32c selon install
-        return "gs"; // macOS / Linux
+        // 3) Nom "classique" selon l'OS (nécessite que Ghostscript soit dans le PATH)
+        resolvedPath = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "gswin64c" : "gs";
+        
+        lock (_cacheLock)
+        {
+            _cachedGhostscriptPath = resolvedPath;
+        }
+        
+        return resolvedPath;
     }
 
+    /// <summary>
+    /// Réinitialise le cache du chemin Ghostscript (utile pour les tests).
+    /// </summary>
+    public static void ResetCache()
+    {
+        lock (_cacheLock)
+        {
+            _cachedGhostscriptPath = null;
+        }
+    }
+
+    /// <summary>
+    /// Quote un chemin s'il contient des espaces.
+    /// </summary>
     static string Quote(string s) => s.Contains(' ') ? $"\"{s}\"" : s;
 
+    /// <summary>
+    /// Obtient le paramètre de compression approprié selon le device.
+    /// </summary>
     static string? GetCompressionParameter(string compression, string device)
     {
-        // For TIFF devices, some compressions need special handling
+        // Pour les devices TIFF, certaines compressions nécessitent un traitement spécial
         if (device.StartsWith("tiff", StringComparison.OrdinalIgnoreCase))
         {
             return compression.ToLower() switch
             {
                 "lzw" => "-sCompression=lzw",
-                "zip" => "-sCompression=zip", // Also known as deflate
+                "zip" => "-sCompression=zip", // Aussi connu comme deflate
                 "packbits" => "-sCompression=packbits",
                 "g3" => "-sCompression=g3",
                 "g4" => "-sCompression=g4",
                 "jpeg" => "-sCompression=jpeg",
-                "none" or "null" => null, // No compression parameter
+                "none" or "null" => null, // Pas de paramètre de compression
                 _ => $"-sCompression={compression}"
             };
         }
         
-        // For other devices, use the compression as-is
+        // Pour les autres devices, utiliser la compression telle quelle
         return string.IsNullOrWhiteSpace(compression) ? null : $"-sCompression={compression}";
     }
 }

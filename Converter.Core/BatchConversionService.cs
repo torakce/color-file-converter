@@ -21,6 +21,15 @@ public sealed class BatchConversionService
         bool useInputFolder = false,
         int maxConcurrency = 2)
     {
+        // Validation des paramètres
+        ArgumentNullException.ThrowIfNull(inputFiles);
+        ArgumentNullException.ThrowIfNull(profile);
+
+        if (maxConcurrency < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxConcurrency), "La concurrence doit être d'au moins 1.");
+        }
+
         if (inputFiles.Count == 0)
         {
             return new BatchConversionResult(Array.Empty<FileConversionResult>());
@@ -63,6 +72,12 @@ public sealed class BatchConversionService
 
                 var singleOutput = Path.Combine(targetFolder, baseName + ".tif");
                 var splitPattern = Path.Combine(targetFolder, baseName + "_%03d.tif");
+
+                // Vérification anti-écrasement : ajout d'un suffixe si le fichier existe déjà
+                if (!splitMultipage)
+                {
+                    singleOutput = GetUniqueOutputPath(singleOutput);
+                }
 
                 // Report start
                 progress?.Report(new BatchConversionProgress(
@@ -204,6 +219,33 @@ public sealed class BatchConversionService
         {
             return 0;
         }
+    }
+
+    /// <summary>
+    /// Génère un nom de fichier unique en ajoutant un suffixe numérique si le fichier existe déjà
+    /// </summary>
+    private static string GetUniqueOutputPath(string basePath)
+    {
+        if (!File.Exists(basePath))
+        {
+            return basePath;
+        }
+
+        var directory = Path.GetDirectoryName(basePath) ?? string.Empty;
+        var fileNameWithoutExt = Path.GetFileNameWithoutExtension(basePath);
+        var extension = Path.GetExtension(basePath);
+
+        int counter = 1;
+        string newPath;
+        
+        do
+        {
+            newPath = Path.Combine(directory, $"{fileNameWithoutExt}_{counter}{extension}");
+            counter++;
+        }
+        while (File.Exists(newPath));
+
+        return newPath;
     }
 }
 
