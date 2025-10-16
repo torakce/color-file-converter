@@ -7,6 +7,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     
+    <!-- Icône de l'application -->
+    <ApplicationIcon>Resources\app-icon.ico</ApplicationIcon>
+    
     <!-- Propriétés pour version portable -->
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -16,6 +19,13 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Converter.Core\Converter.Core.csproj" />
+  </ItemGroup>
+
+  <!-- Icône de l'application -->
+  <ItemGroup>
+    <Content Include="Resources\app-icon.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <!-- Copier les fichiers Ghostscript portables -->

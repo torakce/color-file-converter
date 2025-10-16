@@ -117,6 +117,21 @@ public partial class MainForm : Form
         _previewPagesCache = new Dictionary<string, List<Image>>();
 
         InitializeComponent();
+        
+        // Charger l'icône de l'application
+        try
+        {
+            var iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "app-icon.ico");
+            if (File.Exists(iconPath))
+            {
+                this.Icon = new Icon(iconPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning("Interface", "Impossible de charger l'icône de l'application", ex.Message);
+        }
+        
         CreateInterface();
         InitializeData();
         
@@ -975,9 +990,10 @@ public partial class MainForm : Form
     {
         var outputGroup = new GroupBox
         {
-            Text = "Dossier de sortie",
+            Text = "💾 Dossier de sortie",
             Dock = DockStyle.Fill,
-            Margin = new Padding(5)
+            Margin = new Padding(5),
+            Font = new Font("Segoe UI", 10, FontStyle.Bold)
         };
         parent.Controls.Add(outputGroup, 0, row);
 

@@ -144,10 +144,33 @@ public class PresetCard : Panel
         switch (_iconType)
         {
             case IconType.BlackAndWhite:
-                // Carré noir pur
-                using (var brush = new SolidBrush(Color.Black))
+                // Damier noir & blanc (4x4 cases pour meilleure visibilité)
+                int cellSize = 12; // Cases plus grandes pour que le blanc ressorte bien
+                int gridSize = 4; // 4x4 cases pour moins de densité
+                int startX = 10;
+                int startY = 10;
+                
+                for (int row = 0; row < gridSize; row++)
                 {
-                    g.FillRectangle(brush, 10, 10, 50, 50);
+                    for (int col = 0; col < gridSize; col++)
+                    {
+                        // Alterner noir et blanc selon la position
+                        bool isBlack = (row + col) % 2 == 0;
+                        using (var brush = new SolidBrush(isBlack ? Color.Black : Color.White))
+                        {
+                            g.FillRectangle(brush, 
+                                startX + col * cellSize, 
+                                startY + row * cellSize, 
+                                cellSize, 
+                                cellSize);
+                        }
+                    }
+                }
+                
+                // Bordure autour du damier pour mieux le définir
+                using (var pen = new Pen(Color.FromArgb(100, 100, 100), 1))
+                {
+                    g.DrawRectangle(pen, startX, startY, gridSize * cellSize, gridSize * cellSize);
                 }
                 break;
 

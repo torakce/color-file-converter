@@ -34,9 +34,10 @@ public partial class MainForm
             ColumnCount = 1,
             RowCount = 2,
             Margin = new Padding(10),
-            Padding = new Padding(5)
+            Padding = new Padding(5),
+            AutoScroll = true  // Activer le scroll si nécessaire
         };
-        mainLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Cartes de presets
+        mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 220F)); // Cartes de presets (hauteur fixe)
         mainLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Paramètres (toujours visibles)
         presetsGroup.Controls.Add(mainLayout);
 
@@ -82,7 +83,8 @@ public partial class MainForm
             Dock = DockStyle.Fill,
             AutoSize = true,
             Visible = false,
-            Padding = new Padding(10, 5, 10, 5)
+            Padding = new Padding(10, 5, 10, 5),
+            MinimumSize = new Size(0, 80)  // Hauteur minimale pour garantir la visibilité
         };
 
         var layout = new TableLayoutPanel
