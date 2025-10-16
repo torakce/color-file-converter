@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 using Converter.Core;
+using Converter.Gui.Controls;
 
 namespace Converter.Gui;
 
@@ -50,8 +51,6 @@ public partial class MainForm : Form
     private Label _dropInstructionLabel;
     // _colorModeCombo supprimé - interface simplifiée sans profils
     private TextBox _outputTextBox;
-    private CheckBox _overwriteCheckBox;
-    private CheckBox _openFolderCheckBox;
     private CheckBox _monoPagesCheckBox;
     private Button _convertButton;
     private Button _stopButton;
@@ -59,6 +58,7 @@ public partial class MainForm : Form
     private Label _watchStatusLabel;
     private ProgressBar _progressBar;
     private Label _statusLabel;
+    private ConversionProgressPanel? _conversionProgressPanel;
     
     // Contrôles d'aperçu
     private Panel _previewPanel;
@@ -82,6 +82,10 @@ public partial class MainForm : Form
     private string? _lastPreviewParameters; // Cache des derniers paramètres
     private string? _lastPreviewFilePath;   // Cache du dernier fichier
     
+    // Cache des pages converties pour éviter les re-conversions
+    private Dictionary<string, List<Image>>? _previewPagesCache; // Key: "filepath_params"
+    private const int MaxCacheEntries = 3; // Limiter la taille du cache
+    
     // Zoom et pan avancés
     private float _zoomFactor = 1.0f;
     private PointF _panOffset = PointF.Empty;
@@ -95,6 +99,7 @@ public partial class MainForm : Form
     private Button _previousPageButton;
     private Button _nextPageButton;
     private Label _pageInfoLabel;
+    private ThumbnailStripPanel? _thumbnailStrip;
     
 
 
@@ -108,7 +113,25 @@ public partial class MainForm : Form
         
         _logger.LogInfo("Application", "Démarrage de Color File Converter", "Version GUI v2.1 - Ghostscript intégré");
 
+        // Initialiser le cache de prévisualisation
+        _previewPagesCache = new Dictionary<string, List<Image>>();
+
         InitializeComponent();
+        
+        // Charger l'icône de l'application
+        try
+        {
+            var iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "app-icon.ico");
+            if (File.Exists(iconPath))
+            {
+                this.Icon = new Icon(iconPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning("Interface", "Impossible de charger l'icône de l'application", ex.Message);
+        }
+        
         CreateInterface();
         InitializeData();
         
@@ -303,7 +326,7 @@ public partial class MainForm : Form
 
         // Créer les sections dans le layout gauche
         CreateFileSection(leftLayout, 0);
-        CreateParametersSection(leftLayout, 1);
+        CreatePresetsSection(leftLayout, 1);
         CreateOutputSection(leftLayout, 2);
     }
 
@@ -311,34 +334,12 @@ public partial class MainForm : Form
     {
         var filesGroup = new GroupBox
         {
-            Text = "Fichiers PDF",
+            Text = "📂 Fichiers PDF",
             Dock = DockStyle.Fill,
             Margin = new Padding(5),
-            AllowDrop = true  // Permettre le drop sur toute la zone
+            Font = new Font("Segoe UI", 10, FontStyle.Bold)
         };
         parent.Controls.Add(filesGroup, 0, row);
-        
-        // Événements de drag & drop pour le GroupBox entier
-        filesGroup.DragEnter += FilesList_DragEnter;
-        filesGroup.DragDrop += FilesList_DragDrop;
-        filesGroup.DragOver += FilesGroup_DragOver;
-        filesGroup.DragLeave += FilesGroup_DragLeave;
-
-        _filesList = new ListBox
-        {
-            Dock = DockStyle.Fill,
-            Margin = new Padding(5),
-            AllowDrop = true
-        };
-        _filesList.DragEnter += FilesList_DragEnter;
-        _filesList.DragDrop += FilesList_DragDrop;
-        _filesList.SelectedIndexChanged += (s, e) =>
-        {
-            UpdateActions();
-            // Déclencher l'aperçu automatiquement lors de la sélection
-            RefreshPreview();
-        };
-        UpdateFilesList();
 
         // Utiliser un TableLayoutPanel pour organiser le contenu des fichiers
         var filesLayout = new TableLayoutPanel
@@ -348,13 +349,48 @@ public partial class MainForm : Form
             RowCount = 3,
             Margin = new Padding(5)
         };
-        filesLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 75F)); // Liste des fichiers
+        filesLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 75F)); // Zone de drop
         filesLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));     // Label d'instruction
         filesLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));     // Boutons
         filesLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
         
         filesGroup.Controls.Add(filesLayout);
-        filesLayout.Controls.Add(_filesList, 0, 0);
+
+        // Créer le DropZonePanel pour un meilleur feedback visuel
+        var dropZone = new DropZonePanel
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(5)
+        };
+        
+        // ListBox à l'intérieur du DropZonePanel
+        _filesList = new ListBox
+        {
+            Dock = DockStyle.Fill,
+            BorderStyle = BorderStyle.None,
+            Font = new Font("Segoe UI", 9)
+        };
+        _filesList.SelectedIndexChanged += (s, e) =>
+        {
+            UpdateActions();
+            // Déclencher l'aperçu automatiquement lors de la sélection
+            RefreshPreview();
+        };
+        UpdateFilesList();
+
+        dropZone.Controls.Add(_filesList);
+        
+        // Événements de drag & drop sur le DropZonePanel
+        dropZone.DragEnter += FilesList_DragEnter;
+        dropZone.DragDrop += FilesList_DragDrop;
+        dropZone.DragOver += FilesGroup_DragOver;
+        dropZone.DragLeave += FilesGroup_DragLeave;
+        
+        // Également sur la ListBox pour compatibilité
+        _filesList.DragEnter += FilesList_DragEnter;
+        _filesList.DragDrop += FilesList_DragDrop;
+
+        filesLayout.Controls.Add(dropZone, 0, 0);
 
         // Label d'instruction pour le drag & drop (visible quand la liste est vide)
         _dropInstructionLabel = new Label
@@ -362,12 +398,15 @@ public partial class MainForm : Form
             Text = "📁 Glissez vos fichiers PDF ici\nou utilisez le bouton Charger",
             Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleCenter,
-            ForeColor = SystemColors.GrayText,
-            Font = new Font(_filesList.Font.FontFamily, 10, FontStyle.Italic),
+            ForeColor = Color.FromArgb(100, 100, 100),
+            Font = new Font("Segoe UI", 10, FontStyle.Italic),
             Visible = _files.Count == 0,
             Margin = new Padding(5)
         };
-        filesLayout.Controls.Add(_dropInstructionLabel, 0, 1);
+        
+        // Ajouter le label au DropZonePanel pour qu'il soit visible
+        dropZone.Controls.Add(_dropInstructionLabel);
+        _dropInstructionLabel.BringToFront();
 
         // Panel pour les boutons d'action des fichiers
         var buttonsPanel = new Panel
@@ -951,9 +990,10 @@ public partial class MainForm : Form
     {
         var outputGroup = new GroupBox
         {
-            Text = "Dossier de sortie",
+            Text = "💾 Dossier de sortie",
             Dock = DockStyle.Fill,
-            Margin = new Padding(5)
+            Margin = new Padding(5),
+            Font = new Font("Segoe UI", 10, FontStyle.Bold)
         };
         parent.Controls.Add(outputGroup, 0, row);
 
@@ -962,13 +1002,14 @@ public partial class MainForm : Form
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
-            RowCount = 3,
+            RowCount = 4,
             Margin = new Padding(5)
         };
         outputLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 75F)); // TextBox/CheckBox
         outputLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F)); // Button
         outputLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));  // Label
         outputLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));  // TextBox + Button
+        outputLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));  // Progress Panel
         outputLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));  // CheckBoxes
         
         outputGroup.Controls.Add(outputLayout);
@@ -985,7 +1026,7 @@ public partial class MainForm : Form
         _outputTextBox = new TextBox
         {
             Dock = DockStyle.Fill,
-            Text = Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+            Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads"),
             Margin = new Padding(3)
         };
         outputLayout.Controls.Add(_outputTextBox, 0, 1);
@@ -999,35 +1040,28 @@ public partial class MainForm : Form
         browseButton.Click += BrowseButton_Click;
         outputLayout.Controls.Add(browseButton, 1, 1);
 
+        // Panel de progression détaillée
+        _conversionProgressPanel = new ConversionProgressPanel
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(3),
+            Visible = false // Masqué par défaut, visible pendant conversion
+        };
+        outputLayout.Controls.Add(_conversionProgressPanel, 0, 2);
+        outputLayout.SetColumnSpan(_conversionProgressPanel, 2);
+
         // Panel pour les checkboxes
         var checkBoxPanel = new Panel
         {
             Dock = DockStyle.Fill,
             Margin = new Padding(3)
         };
-        
-        _overwriteCheckBox = new CheckBox
-        {
-            Text = "Écraser fichiers existants",
-            AutoSize = true,
-            Location = new Point(0, 0)
-        };
-        checkBoxPanel.Controls.Add(_overwriteCheckBox);
-
-        _openFolderCheckBox = new CheckBox
-        {
-            Text = "Ouvrir dossier après conversion",
-            AutoSize = true,
-            Location = new Point(0, 25),
-            Checked = true
-        };
-        checkBoxPanel.Controls.Add(_openFolderCheckBox);
 
         _monoPagesCheckBox = new CheckBox
         {
             Text = "Créer des fichiers séparés par page (mono-pages)",
             AutoSize = true,
-            Location = new Point(0, 50),
+            Location = new Point(0, 0),
             Checked = false
         };
         _monoPagesCheckBox.CheckedChanged += ParameterChanged;
@@ -1043,7 +1077,7 @@ public partial class MainForm : Form
             "  Exemple: document.pdf → document.tiff (toutes les pages)\n" +
             "Utile pour traiter les pages individuellement");
         
-        outputLayout.Controls.Add(checkBoxPanel, 0, 2);
+        outputLayout.Controls.Add(checkBoxPanel, 0, 3);
         outputLayout.SetColumnSpan(checkBoxPanel, 2);
 
         // Performance supprimée - le RowCount reste à 3
@@ -1659,6 +1693,17 @@ public partial class MainForm : Form
         _progressBar.Visible = true;
         _statusLabel.Text = "Conversion en cours...";
         
+        // Afficher et démarrer le panel de progression détaillée
+        if (_conversionProgressPanel != null)
+        {
+            _conversionProgressPanel.Visible = true;
+            _conversionProgressPanel.Reset();
+            if (_files.Count > 0)
+            {
+                _conversionProgressPanel.StartConversion(Path.GetFileName(_files[0]), 0);
+            }
+        }
+        
         UpdateActions();
 
         try
@@ -1757,6 +1802,23 @@ public partial class MainForm : Form
         _progressBar.Value = progress.Completed;
         _statusLabel.Text = $"Conversion: {progress.Completed}/{progress.Total} - {Path.GetFileName(progress.InputPath)}";
         
+        // Mettre à jour le panel de progression détaillée
+        if (_conversionProgressPanel != null && progress.Total > 0)
+        {
+            var percentComplete = (progress.Completed * 100) / progress.Total;
+            _conversionProgressPanel.UpdateProgress(progress.Completed, progress.Total, percentComplete);
+            
+            // Mettre à jour le fichier en cours si changé
+            if (progress.Completed < progress.Total)
+            {
+                var nextFileIndex = Math.Min(progress.Completed, _files.Count - 1);
+                if (nextFileIndex >= 0 && nextFileIndex < _files.Count)
+                {
+                    _conversionProgressPanel.StartConversion(Path.GetFileName(_files[nextFileIndex]), 0);
+                }
+            }
+        }
+        
         // Log du progrès (seulement tous les 10% pour éviter le spam)
         if (progress.Total > 0 && (progress.Completed % Math.Max(1, progress.Total / 10) == 0 || progress.Completed == progress.Total))
         {
@@ -1776,6 +1838,32 @@ public partial class MainForm : Form
         var successCount = result.SuccessCount;
         var failureCount = result.FailureCount;
         var totalTime = result.TotalDuration;
+        
+        // Mettre à jour le panel de progression
+        if (_conversionProgressPanel != null)
+        {
+            if (failureCount == 0)
+            {
+                _conversionProgressPanel.Complete();
+            }
+            else
+            {
+                _conversionProgressPanel.Fail($"{failureCount} fichier(s) en échec");
+            }
+            
+            // Masquer le panel après 2 secondes pour laisser voir le résultat
+            var timer = new System.Windows.Forms.Timer { Interval = 2000 };
+            timer.Tick += (s, ev) =>
+            {
+                if (_conversionProgressPanel != null)
+                {
+                    _conversionProgressPanel.Visible = false;
+                }
+                timer.Stop();
+                timer.Dispose();
+            };
+            timer.Start();
+        }
         
         // Log détaillé du résultat
         _logger.LogInfo("Conversion", $"Conversion terminée: {successCount} succès, {failureCount} échecs", 
@@ -1801,29 +1889,16 @@ public partial class MainForm : Form
 
         if (successCount > 0)
         {
-            _logger.LogInfo("UI", "Conversion réussie, vérification ouverture dossier", 
-                $"CheckBox cochée: {_openFolderCheckBox.Checked}, Dossier: {outputFolder}");
-            
-            if (_openFolderCheckBox.Checked)
+            // Ouverture automatique du dossier après conversion réussie
+            try
             {
-                try
-                {
-                    _logger.LogInfo("UI", "Ouverture du dossier de sortie", outputFolder);
-                    OpenExplorerIntelligently(outputFolder);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError("UI", "Erreur lors de l'ouverture de l'explorateur", ex, outputFolder);
-                }
+                _logger.LogInfo("UI", "Ouverture du dossier de sortie", outputFolder);
+                OpenExplorerIntelligently(outputFolder);
             }
-            else
+            catch (Exception ex)
             {
-                _logger.LogInfo("UI", "Case 'Ouvrir dossier' non cochée - aucune ouverture");
+                _logger.LogError("UI", "Erreur lors de l'ouverture de l'explorateur", ex, outputFolder);
             }
-        }
-        else
-        {
-            _logger.LogInfo("UI", "Aucun fichier converti avec succès - pas d'ouverture de dossier");
         }
 
         // Sauvegarde des préférences supprimée - interface simplifiée
@@ -1993,6 +2068,20 @@ public partial class MainForm : Form
             BorderStyle = BorderStyle.FixedSingle
         };
 
+        // Strip de vignettes pour navigation pages
+        _thumbnailStrip = new ThumbnailStripPanel
+        {
+            Dock = DockStyle.Bottom,
+            Height = 140, // Augmenté pour meilleures miniatures
+            Visible = false // Masqué par défaut, visible quand multi-pages
+        };
+        _thumbnailStrip.ThumbnailClicked += (s, pageIndex) =>
+        {
+            _currentPageIndex = pageIndex;
+            DisplayCurrentPage();
+            UpdatePageNavigation();
+        };
+
         // Assemblage des contrôles
         zoomPanel.Controls.Add(_zoomTrackBar);
         zoomPanel.Controls.Add(_zoomLabel);
@@ -2006,6 +2095,8 @@ public partial class MainForm : Form
         _previewPanel.Controls.Add(_previewStatusLabel);
         // Puis le label d'infos fichier (Dock.Top)
         _previewPanel.Controls.Add(_fileInfoLabel);
+        // Puis le strip de vignettes (Dock.Bottom)
+        _previewPanel.Controls.Add(_thumbnailStrip);
         // Puis le zoom panel (Dock.Bottom)
         _previewPanel.Controls.Add(zoomPanel);
         // Enfin le PictureBox (Dock.Fill) qui prendra l'espace restant
@@ -2033,7 +2124,7 @@ public partial class MainForm : Form
         if (_currentPreviewImage == null || _zoomTrackBar == null)
             return;
 
-        // Zoom avec molette (sans Ctrl nécessaire)
+        // Zoom avec molette (pas besoin de Ctrl)
         // Position du curseur dans la PictureBox pour centrer le zoom
         var mousePos = _previewPictureBox!.PointToClient(Cursor.Position);
         var oldZoomFactor = _zoomFactor;
@@ -2043,12 +2134,12 @@ public partial class MainForm : Form
 
         if (e.Delta > 0)
         {
-            // Molette vers le haut : zoom in (plus doux: 10%)
+            // Molette vers le haut : zoom in (incrément 10%)
             newZoom = Math.Min(_zoomTrackBar.Maximum, currentZoom + 10);
         }
         else
         {
-            // Molette vers le bas : zoom out (plus doux: 10%)
+            // Molette vers le bas : zoom out (décrément 10%)
             newZoom = Math.Max(_zoomTrackBar.Minimum, currentZoom - 10);
         }
 
@@ -2251,30 +2342,14 @@ public partial class MainForm : Form
         if (_allPreviewPages == null || _currentPageIndex < 0 || _currentPageIndex >= _allPreviewPages.Count)
             return;
 
-        // Nettoyer l'image précédente
-        _currentPreviewImage?.Dispose();
-        
-        // Créer une copie de la page courante
-        var currentPage = _allPreviewPages[_currentPageIndex];
-        _currentPreviewImage = new Bitmap(currentPage);
-        
-        // Réinitialiser pan et zoom
-        _panOffset = PointF.Empty;
-        _zoomFactor = _zoomTrackBar!.Value / 100.0f;
+        // Référencer directement la page courante (pas de copie pour performance)
+        _currentPreviewImage = _allPreviewPages[_currentPageIndex];
         
         // S'assurer que la PictureBox n'a pas d'image (on dessine manuellement)
-        _previewPictureBox!.Image?.Dispose();
-        _previewPictureBox.Image = null;
+        _previewPictureBox!.Image = null;
         
-        // Redessiner avec le nouveau système
+        // Redessiner avec le nouveau système (invalidate suffit, c'est rapide)
         _previewPictureBox.Invalidate();
-        
-        // Force le redraw
-        _previewPictureBox.Refresh();
-        _previewPanel.Refresh();
-        
-        // Appliquer le zoom fit-to-width après que les contrôles soient dimensionnés
-        this.BeginInvoke(new Action(ApplyFitToWidthZoom));
     }
 
     private void UpdatePageNavigation()
@@ -2292,6 +2367,7 @@ public partial class MainForm : Form
         if (_currentPageIndex > 0)
         {
             _currentPageIndex--;
+            _thumbnailStrip?.SelectThumbnail(_currentPageIndex);
             DisplayCurrentPage();
             UpdatePageNavigation();
         }
@@ -2302,6 +2378,7 @@ public partial class MainForm : Form
         if (_currentPageIndex < _totalPages - 1)
         {
             _currentPageIndex++;
+            _thumbnailStrip?.SelectThumbnail(_currentPageIndex);
             DisplayCurrentPage();
             UpdatePageNavigation();
         }
@@ -2360,13 +2437,39 @@ public partial class MainForm : Form
             var conversionParams = GetCurrentConversionParameters();
             var currentParameters = $"{_resolutionCombo.Text}_{_compressionCombo.SelectedItem}_{_bitDepthCombo.SelectedItem}_{conversionParams.MonoPages}";
             
-            // Vérifier si on peut réutiliser l'aperçu existant (cache)
-            if (_lastPreviewFilePath == pdfPath && 
-                _lastPreviewParameters == currentParameters && 
-                _currentPreviewImage != null)
+            // Créer une clé de cache unique pour ce fichier et ces paramètres
+            var cacheKey = $"{pdfPath}_{currentParameters}";
+            
+            // Vérifier si les pages sont déjà en cache
+            if (_previewPagesCache != null && _previewPagesCache.ContainsKey(cacheKey))
             {
-                UpdatePreviewStatus("Aperçu (paramètres inchangés)");
-                return; // Pas besoin de régénérer
+                // Réutiliser les pages en cache
+                _allPreviewPages = _previewPagesCache[cacheKey];
+                _lastPreviewFilePath = pdfPath;
+                _lastPreviewParameters = currentParameters;
+                
+                // Afficher les pages en cache
+                _currentPageIndex = 0;
+                _totalPages = _allPreviewPages?.Count ?? 0;
+                UpdatePageNavigation();
+                
+                if (_thumbnailStrip != null && _allPreviewPages != null)
+                {
+                    _thumbnailStrip.LoadThumbnails(_allPreviewPages);
+                    _thumbnailStrip.Visible = _allPreviewPages.Count > 1;
+                    if (_allPreviewPages.Count > 1)
+                    {
+                        _thumbnailStrip.SelectThumbnail(0);
+                    }
+                }
+                
+                if (_allPreviewPages != null && _allPreviewPages.Count > 0)
+                {
+                    DisplayCurrentPage();
+                }
+                
+                UpdatePreviewStatus($"Aperçu (depuis cache): {Path.GetFileName(pdfPath)} → {_totalPages} page(s)");
+                return; // Aperçu depuis le cache
             }
             
             _previewCts?.Cancel();
@@ -2405,10 +2508,49 @@ public partial class MainForm : Form
                     // Charger toutes les pages du TIFF multi-page
                     LoadAllPreviewPages(tempTiffPath);
                     
+                    // Ajouter au cache (avec limite de taille)
+                    if (_previewPagesCache != null && _allPreviewPages != null)
+                    {
+                        // Si le cache est plein, supprimer les anciennes entrées
+                        while (_previewPagesCache.Count >= MaxCacheEntries)
+                        {
+                            var oldestKey = _previewPagesCache.Keys.First();
+                            var oldPages = _previewPagesCache[oldestKey];
+                            // Libérer les images de la mémoire
+                            foreach (var page in oldPages)
+                            {
+                                page?.Dispose();
+                            }
+                            _previewPagesCache.Remove(oldestKey);
+                        }
+                        
+                        // Créer des copies des images pour le cache (pour éviter les problèmes de disposal)
+                        var cachedPages = new List<Image>();
+                        foreach (var page in _allPreviewPages)
+                        {
+                            if (page != null)
+                            {
+                                cachedPages.Add((Image)page.Clone());
+                            }
+                        }
+                        _previewPagesCache[cacheKey] = cachedPages;
+                    }
+                    
                     // Initialiser la navigation
                     _currentPageIndex = 0;
                     _totalPages = _allPreviewPages?.Count ?? 0;
                     UpdatePageNavigation();
+                    
+                    // Charger les miniatures dans le bandeau (si multi-pages)
+                    if (_thumbnailStrip != null && _allPreviewPages != null)
+                    {
+                        _thumbnailStrip.LoadThumbnails(_allPreviewPages);
+                        _thumbnailStrip.Visible = _allPreviewPages.Count > 1; // Visible seulement si multi-pages
+                        if (_allPreviewPages.Count > 1)
+                        {
+                            _thumbnailStrip.SelectThumbnail(0); // Sélectionner la première miniature
+                        }
+                    }
                     
                     // Afficher la première page
                     if (_allPreviewPages != null && _allPreviewPages.Count > 0)
@@ -2490,7 +2632,8 @@ public partial class MainForm : Form
         if (_previewPictureBox != null)
             _previewPictureBox.Image = null;
             
-        _currentPreviewImage?.Dispose();
+        // Ne pas disposer _currentPreviewImage car elle référence une image de _allPreviewPages
+        // _currentPreviewImage?.Dispose();
         _currentPreviewImage = null;
         
         // Nettoyer toutes les pages de navigation
@@ -2508,6 +2651,13 @@ public partial class MainForm : Form
         _totalPages = 0;
         UpdatePageNavigation();
         
+        // Nettoyer et masquer le bandeau de miniatures
+        if (_thumbnailStrip != null)
+        {
+            _thumbnailStrip.Clear();
+            _thumbnailStrip.Visible = false;
+        }
+        
         UpdateFileInfo("");
         
         // Nettoyer le fichier temporaire précédent
@@ -2524,7 +2674,22 @@ public partial class MainForm : Form
         {
             _previewCts?.Cancel();
             _previewCts?.Dispose();
-            _currentPreviewImage?.Dispose();
+            
+            // Nettoyer le cache de prévisualisation
+            if (_previewPagesCache != null)
+            {
+                foreach (var cachedPages in _previewPagesCache.Values)
+                {
+                    foreach (var page in cachedPages)
+                    {
+                        page?.Dispose();
+                    }
+                }
+                _previewPagesCache.Clear();
+            }
+            
+            // Ne pas disposer _currentPreviewImage car elle référence une image de _allPreviewPages
+            // _currentPreviewImage?.Dispose();
             _previewPictureBox?.Image?.Dispose();
         }
         base.Dispose(disposing);

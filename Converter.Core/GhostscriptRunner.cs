@@ -10,6 +10,9 @@ namespace Converter.Core;
 
 public static class GhostscriptRunner
 {
+    private static string? _cachedGhostscriptPath;
+    private static readonly object _cacheLock = new object();
+
     public static async Task ConvertPdfToTiffAsync(
         string inputPdf,
         string outputPattern,
@@ -84,8 +87,8 @@ public static class GhostscriptRunner
             throw new InvalidOperationException("Impossible de démarrer Ghostscript.");
         }
 
-        var stdoutTask = p.StandardOutput.ReadToEndAsync();
-        var stderrTask = p.StandardError.ReadToEndAsync();
+        var stdoutTask = p.StandardOutput.ReadToEndAsync(cancellationToken);
+        var stderrTask = p.StandardError.ReadToEndAsync(cancellationToken);
 
         using var registration = cancellationToken.Register(() =>
         {
@@ -104,15 +107,16 @@ public static class GhostscriptRunner
 
         try
         {
-            await p.WaitForExitAsync(cancellationToken);
+            await p.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            // Le processus a déjà été tué par le callback d'annulation
+            throw;
         }
 
-        string stdout = await stdoutTask;
-        string stderr = await stderrTask;
+        string stdout = await stdoutTask.ConfigureAwait(false);
+        string stderr = await stderrTask.ConfigureAwait(false);
 
         cancellationToken.ThrowIfCancellationRequested();
 
